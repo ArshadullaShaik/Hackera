@@ -1,0 +1,482 @@
+"use client";
+
+import { useState, useEffect, useCallback, ChangeEvent } from "react";
+
+interface HackathonItem {
+  id: string;
+  sourceId: string;
+  sourcePlatform: string;
+  title: string;
+  description?: string;
+  startsAt: string;
+  endsAt?: string;
+  locationType: "in-person" | "online" | "hybrid";
+  locationName?: string;
+  canonicalUrl: string;
+  imageUrl?: string;
+  rawSourcePayload?: any;
+}
+
+export default function Home() {
+  const [hackathons, setHackathons] = useState<HackathonItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+
+  // Filters
+  const [search, setSearch] = useState("");
+  const [locationType, setLocationType] = useState("");
+  const [platform, setPlatform] = useState("");
+
+  const limit = 12;
+
+  const fetchHackathons = useCallback(
+    async (targetPage: number, isAppend: boolean = false) => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({
+          page: targetPage.toString(),
+          limit: limit.toString(),
+        });
+
+        if (search.trim()) params.append("search", search.trim());
+        if (locationType) params.append("locationType", locationType);
+        if (platform) params.append("platform", platform);
+
+        const res = await fetch(`/hackathons?${params.toString()}`);
+        if (!res.ok) throw new Error("Failed to fetch hackathons");
+
+        const json = await res.json();
+        const data: HackathonItem[] = json.data || [];
+        const meta = json.meta || { total: 0, totalPages: 1 };
+
+        setTotal(meta.total);
+        setTotalPages(meta.totalPages);
+
+        if (isAppend) {
+          setHackathons((prev) => [...prev, ...data]);
+        } else {
+          setHackathons(data);
+        }
+      } catch (err) {
+        console.error("Error fetching hackathons:", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [search, locationType, platform]
+  );
+
+  useEffect(() => {
+    setPage(1);
+    fetchHackathons(1, false);
+  }, [search, locationType, platform, fetchHackathons]);
+
+  const handleLoadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchHackathons(nextPage, true);
+  };
+
+  const clearFilter = (type: "search" | "location" | "platform") => {
+    if (type === "search") setSearch("");
+    if (type === "location") setLocationType("");
+    if (type === "platform") setPlatform("");
+  };
+
+  return (
+    <>
+      {/* Hero Section */}
+      <section class="hero-section">
+        <div class="hero-text">
+          <h1 class="hero-title">
+            THE HACKATHON <span class="highlight-purple">INDEX.</span>
+          </h1>
+          <div class="hero-badge-lime">
+            <p>
+              We scrape the web to find the best hackathons, so you don&apos;t
+              have to. Every event, every prize, one dashboard.
+            </p>
+          </div>
+        </div>
+
+        {/* Doodle Frame Illustration */}
+        <div class="doodle-frame">
+          <svg
+            viewBox="0 0 450 220"
+            class="doodle-svg"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect
+              x="5"
+              y="5"
+              width="440"
+              height="210"
+              rx="8"
+              fill="#ffffff"
+              stroke="#000000"
+              strokeWidth="3"
+            />
+            <rect
+              x="15"
+              y="15"
+              width="420"
+              height="190"
+              fill="#fdfbf7"
+              stroke="#000000"
+              strokeWidth="2"
+            />
+            <path
+              d="M 30,130 Q 80,40 180,90 T 350,50 T 420,160"
+              fill="none"
+              stroke="#e0e7ff"
+              strokeWidth="24"
+              opacity="0.6"
+            />
+            <path
+              d="M 50,180 Q 120,80 250,150 T 400,90"
+              fill="none"
+              stroke="#fef08a"
+              strokeWidth="20"
+              opacity="0.7"
+            />
+
+            <g transform="translate(30, 30)">
+              <rect x="0" y="0" width="60" height="40" rx="4" fill="#000000" />
+              <rect x="4" y="4" width="52" height="32" rx="2" fill="#8455ef" />
+              <path d="M -10,40 L 70,40 L 60,48 L -0,48 Z" fill="#000000" />
+            </g>
+
+            <g transform="translate(140, 25)">
+              <rect
+                x="0"
+                y="0"
+                width="70"
+                height="45"
+                rx="6"
+                fill="#b2f746"
+                stroke="#000000"
+                strokeWidth="3"
+              />
+              <text
+                x="35"
+                y="32"
+                fontFamily="Space Grotesk"
+                fontWeight="700"
+                fontSize="28"
+                textAnchor="middle"
+                fill="#000000"
+              >
+                &lt;/&gt;
+              </text>
+            </g>
+
+            <g transform="translate(100, 85)">
+              <rect
+                x="0"
+                y="0"
+                width="240"
+                height="44"
+                rx="4"
+                fill="#ffffff"
+                stroke="#000000"
+                strokeWidth="3"
+                filter="drop-shadow(3px 3px 0px #000)"
+              />
+              <text
+                x="120"
+                y="28"
+                fontFamily="Space Grotesk"
+                fontWeight="700"
+                fontSize="20"
+                letterSpacing="1"
+                textAnchor="middle"
+                fill="#000000"
+              >
+                GLOBAL HACKATHON
+              </text>
+            </g>
+
+            <g transform="translate(350, 25)">
+              <circle
+                cx="25"
+                cy="25"
+                r="22"
+                fill="#ec4899"
+                stroke="#000000"
+                strokeWidth="3"
+              />
+              <path
+                d="M 3,25 H 47 M 25,3 V 47 M 8,14 Q 25,25 8,36 M 42,14 Q 25,25 42,36"
+                stroke="#000000"
+                strokeWidth="2"
+                fill="none"
+              />
+            </g>
+
+            <g transform="translate(340, 125)">
+              <rect x="0" y="0" width="60" height="40" rx="4" fill="#000000" />
+              <rect x="4" y="4" width="52" height="32" rx="2" fill="#b2f746" />
+              <path d="M -10,40 L 70,40 L 60,48 L -0,48 Z" fill="#000000" />
+            </g>
+
+            <g transform="translate(60, 135)">
+              <rect
+                x="0"
+                y="0"
+                width="55"
+                height="36"
+                rx="4"
+                fill="#ec4899"
+                stroke="#000000"
+                strokeWidth="2"
+              />
+              <text
+                x="27"
+                y="25"
+                fontFamily="Space Grotesk"
+                fontWeight="700"
+                fontSize="20"
+                textAnchor="middle"
+                fill="#ffffff"
+              >
+                &lt;/&gt;
+              </text>
+            </g>
+
+            <path
+              d="M 110,20 L 114,28 L 122,30 L 115,36 L 118,44 L 110,38 L 102,44 L 105,36 L 98,30 L 106,28 Z"
+              fill="#ff761c"
+              stroke="#000000"
+              strokeWidth="1.5"
+            />
+            <path
+              d="M 310,25 L 313,31 L 320,32 L 315,37 L 317,43 L 310,39 L 303,43 L 305,37 L 300,32 L 307,31 Z"
+              fill="#b2f746"
+              stroke="#000000"
+              strokeWidth="1.5"
+            />
+            <path
+              d="M 230,140 Q 260,170 300,150"
+              fill="none"
+              stroke="#000000"
+              strokeWidth="3"
+              strokeDasharray="6,4"
+            />
+            <path
+              d="M 295,142 L 305,150 L 295,158"
+              fill="none"
+              stroke="#000000"
+              strokeWidth="3"
+            />
+          </svg>
+        </div>
+      </section>
+
+      {/* Filter Section */}
+      <section class="filter-section">
+        <div class="status-bar-wrapper">
+          <span class="status-badge">
+            ⚡ {total > 0 ? `${total.toLocaleString()} HACKATHONS INDEXED` : "LIVE AGGREGATED FEED"}
+          </span>
+        </div>
+
+        <div class="filter-card">
+          <div class="filter-form">
+            <div class="input-group search-input-group">
+              <span class="search-icon">🔍</span>
+              <input
+                type="text"
+                placeholder="Search aggregated events, themes, or tech..."
+                value={search}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+              />
+            </div>
+
+            <div class="select-group">
+              <select
+                value={locationType}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setLocationType(e.target.value)}
+              >
+                <option value="">LOCATION: ALL</option>
+                <option value="online">ONLINE</option>
+                <option value="in-person">IN-PERSON</option>
+                <option value="hybrid">HYBRID</option>
+              </select>
+            </div>
+
+            <div class="select-group">
+              <select
+                value={platform}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setPlatform(e.target.value)}
+              >
+                <option value="">PLATFORM: ALL</option>
+                <option value="luma">LUMA</option>
+                <option value="devfolio">DEVFOLIO</option>
+                <option value="mlh">MLH</option>
+                <option value="unstop">UNSTOP</option>
+                <option value="devpost">DEVPOST</option>
+                <option value="hackerearth">HACKEREARTH</option>
+                <option value="hackclub">HACK CLUB</option>
+              </select>
+            </div>
+
+            <button class="btn btn-purple" onClick={() => fetchHackathons(1, false)}>
+              FILTER
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Active Tags */}
+      {(search || locationType || platform) && (
+        <div class="active-tags-bar">
+          {search && (
+            <span class="active-tag-chip" onClick={() => clearFilter("search")}>
+              Search: &quot;{search}&quot; ✖
+            </span>
+          )}
+          {locationType && (
+            <span class="active-tag-chip" onClick={() => clearFilter("location")}>
+              Location: {locationType.toUpperCase()} ✖
+            </span>
+          )}
+          {platform && (
+            <span class="active-tag-chip" onClick={() => clearFilter("platform")}>
+              Platform: {platform.toUpperCase()} ✖
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Hackathons Grid */}
+      <section class="grid-section">
+        <div class="hackathons-grid">
+          {loading && hackathons.length === 0 ? (
+            <>
+              <div class="card skeleton-card"></div>
+              <div class="card skeleton-card"></div>
+              <div class="card skeleton-card"></div>
+            </>
+          ) : hackathons.length === 0 ? (
+            <div class="empty-state">
+              <h3>NO HACKATHONS FOUND</h3>
+              <p>
+                Try clearing your search query or selecting a different location or platform filter.
+              </p>
+            </div>
+          ) : (
+            hackathons.map((item) => {
+              const locType = (item.locationType || "online").toLowerCase();
+              let locBadgeClass = "badge-location-online";
+              let locBadgeText = "ONLINE";
+
+              if (locType === "in-person") {
+                locBadgeClass = "badge-location-person";
+                locBadgeText = item.locationName
+                  ? `📍 ${item.locationName.split(",")[0].toUpperCase()}`
+                  : "IN-PERSON";
+              } else if (locType === "hybrid") {
+                locBadgeClass = "badge-location-hybrid";
+                locBadgeText = "HYBRID";
+              }
+
+              const platformName = (item.sourcePlatform || "OTHER").toUpperCase();
+              const startDate = item.startsAt ? new Date(item.startsAt) : null;
+              const dateFormatted =
+                startDate && !isNaN(startDate.getTime())
+                  ? startDate.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })
+                  : "UPCOMING";
+
+              let prizeText = "🏆 Cash & Prizes";
+              if (item.rawSourcePayload?.prize_amount) {
+                prizeText = `🏆 ${item.rawSourcePayload.prize_amount.replace(/<[^>]*>?/gm, "")}`;
+              } else if (item.rawSourcePayload?.prizes?.length) {
+                const p = item.rawSourcePayload.prizes[0];
+                if (p.cash) prizeText = `🏆 ${p.cash} Pool`;
+                else if (p.others) prizeText = `🏆 ${p.others.slice(0, 20)}`;
+              }
+
+              return (
+                <article key={item.id} class="card">
+                  <div class="card-header">
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        class="card-img"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = "none";
+                          const next = (e.target as HTMLElement).nextElementSibling;
+                          if (next) (next as HTMLElement).style.display = "flex";
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      class="card-img-placeholder"
+                      style={{ display: item.imageUrl ? "none" : "flex" }}
+                    >
+                      {platformName}
+                    </div>
+                    <span class={`badge-top-left ${locBadgeClass}`}>
+                      {locBadgeText}
+                    </span>
+                    <span class="badge-top-right">⚡ {platformName}</span>
+                  </div>
+
+                  <div class="card-body">
+                    <div class="card-tags">
+                      <span class="pill-tag">{platformName}</span>
+                      <span class="pill-tag pill-tag-date">
+                        📅 {dateFormatted}
+                      </span>
+                    </div>
+
+                    <h2 class="card-title">{item.title}</h2>
+
+                    <p class="card-description">
+                      {item.description ||
+                        "Join this exciting hackathon challenge and build innovative solutions."}
+                    </p>
+
+                    <div class="card-footer">
+                      <div class="prize-info">
+                        <span>{prizeText}</span>
+                      </div>
+
+                      <a
+                        href={item.canonicalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn-arrow-icon"
+                        title="View Hackathon Page"
+                      >
+                        ➔
+                      </a>
+                    </div>
+                  </div>
+                </article>
+              );
+            })
+          )}
+        </div>
+      </section>
+
+      {/* CTA Button */}
+      {page < totalPages && (
+        <section class="cta-section">
+          <button class="btn-cta-banner" onClick={handleLoadMore}>
+            <span>
+              LOAD MORE ({hackathons.length} OF {total} SHOWN)
+            </span>
+            <span class="arrow">➔</span>
+          </button>
+        </section>
+      )}
+    </>
+  );
+}

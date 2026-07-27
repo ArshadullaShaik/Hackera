@@ -1,0 +1,2 @@
+{"timestamp":"00:00:00.418","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:01:16.750","source":"Server","level":"ERROR","message":"Invalid DOM property `class`. Did you mean `className`?"}

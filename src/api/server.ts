@@ -33,6 +33,9 @@ export function createApp(repository: HackathonRepository) {
   });
   app.use(limiter);
 
+  // Serve static frontend assets
+  app.use(express.static("public"));
+
   // Routes
   app.use("/hackathons", createHackathonRouter(repository));
 

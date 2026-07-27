@@ -29,6 +29,8 @@ export function createApp(repository) {
         },
     });
     app.use(limiter);
+    // Serve static frontend assets
+    app.use(express.static("public"));
     // Routes
     app.use("/hackathons", createHackathonRouter(repository));
     // Health check
