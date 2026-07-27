@@ -32,7 +32,7 @@ function Home() {
             if (search.trim()) params.append("search", search.trim());
             if (locationType) params.append("locationType", locationType);
             if (platform) params.append("platform", platform);
-            const res = await fetch(`/hackathons?${params.toString()}`);
+            const res = await fetch(`/api/hackathons?${params.toString()}`);
             if (!res.ok) throw new Error("Failed to fetch hackathons");
             const json = await res.json();
             const data = json.data || [];
