@@ -14,7 +14,7 @@ export declare const NormalizedHackathonSchema: z.ZodObject<{
     latitude: z.ZodOptional<z.ZodNumber>;
     longitude: z.ZodOptional<z.ZodNumber>;
     sourceId: z.ZodString;
-    sourcePlatform: z.ZodEnum<["luma", "devfolio", "devpost", "other"]>;
+    sourcePlatform: z.ZodEnum<["luma", "devfolio", "devpost", "mlh", "unstop", "hackerearth", "hackclub", "other"]>;
     canonicalUrl: z.ZodString;
     imageUrl: z.ZodOptional<z.ZodString>;
     rawSourcePayload: z.ZodRecord<z.ZodString, z.ZodUnknown>;
@@ -24,7 +24,7 @@ export declare const NormalizedHackathonSchema: z.ZodObject<{
     startsAt: string;
     locationType: "in-person" | "online" | "hybrid";
     sourceId: string;
-    sourcePlatform: "luma" | "devfolio" | "devpost" | "other";
+    sourcePlatform: "luma" | "devfolio" | "devpost" | "mlh" | "unstop" | "hackerearth" | "hackclub" | "other";
     canonicalUrl: string;
     rawSourcePayload: Record<string, unknown>;
     endsAt?: string | undefined;
@@ -37,7 +37,7 @@ export declare const NormalizedHackathonSchema: z.ZodObject<{
     startsAt: string;
     locationType: "in-person" | "online" | "hybrid";
     sourceId: string;
-    sourcePlatform: "luma" | "devfolio" | "devpost" | "other";
+    sourcePlatform: "luma" | "devfolio" | "devpost" | "mlh" | "unstop" | "hackerearth" | "hackclub" | "other";
     canonicalUrl: string;
     rawSourcePayload: Record<string, unknown>;
     description?: string | undefined;

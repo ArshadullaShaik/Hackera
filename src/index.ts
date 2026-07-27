@@ -2,16 +2,26 @@ import dotenv from "dotenv";
 dotenv.config();
 import { LumaScraper } from "./scrapers/luma/luma.scraper.js";
 import { DevfolioScraper } from "./scrapers/devfolio/devfolio.scraper.js";
+import { MLHScraper } from "./scrapers/mlh/mlh.scraper.js";
+import { UnstopScraper } from "./scrapers/unstop/unstop.scraper.js";
+import { DevpostScraper } from "./scrapers/devpost/devpost.scraper.js";
+import { HackerEarthScraper } from "./scrapers/hackerearth/hackerearth.scraper.js";
+import { HackClubScraper } from "./scrapers/hackclub/hackclub.scraper.js";
 import { HackathonRepository } from "./persistence/hackathon.repository.js";
 import { getPrismaClient, disconnectPrisma } from "./persistence/db.js";
 import { logger } from "./core/logger.js";
 
 async function main() {
-  logger.info("Starting hackathon aggregator - Phase 3: PostgreSQL Persistence");
+  logger.info("Starting hackathon aggregator - All Platforms Multi-Scrape");
 
   const scrapers = [
     { name: "Luma", scraper: new LumaScraper() },
     { name: "Devfolio", scraper: new DevfolioScraper() },
+    { name: "MLH", scraper: new MLHScraper() },
+    { name: "Unstop", scraper: new UnstopScraper() },
+    { name: "Devpost", scraper: new DevpostScraper() },
+    { name: "HackerEarth", scraper: new HackerEarthScraper() },
+    { name: "HackClub", scraper: new HackClubScraper() },
   ];
 
   const prisma = getPrismaClient();

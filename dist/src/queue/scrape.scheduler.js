@@ -1,7 +1,15 @@
 import { Queue } from "bullmq";
 import { createRedisConnection } from "./connection.js";
 import { logger } from "../core/logger.js";
-const SCRAPER_JOBS = ["scrape:luma", "scrape:devfolio"];
+const SCRAPER_JOBS = [
+    "scrape:luma",
+    "scrape:devfolio",
+    "scrape:mlh",
+    "scrape:unstop",
+    "scrape:devpost",
+    "scrape:hackerearth",
+    "scrape:hackclub",
+];
 // Retry config: exponential backoff — 30s, 60s, 120s
 const JOB_OPTIONS = {
     attempts: 3,

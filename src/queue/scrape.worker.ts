@@ -2,6 +2,11 @@ import { Worker, Job } from "bullmq";
 import { createRedisConnection } from "./connection.js";
 import { LumaScraper } from "../scrapers/luma/luma.scraper.js";
 import { DevfolioScraper } from "../scrapers/devfolio/devfolio.scraper.js";
+import { MLHScraper } from "../scrapers/mlh/mlh.scraper.js";
+import { UnstopScraper } from "../scrapers/unstop/unstop.scraper.js";
+import { DevpostScraper } from "../scrapers/devpost/devpost.scraper.js";
+import { HackerEarthScraper } from "../scrapers/hackerearth/hackerearth.scraper.js";
+import { HackClubScraper } from "../scrapers/hackclub/hackclub.scraper.js";
 import { HackathonRepository } from "../persistence/hackathon.repository.js";
 import { getPrismaClient, disconnectPrisma } from "../persistence/db.js";
 import { Scraper } from "../core/scraper.interface.js";
@@ -10,6 +15,11 @@ import { logger } from "../core/logger.js";
 const SCRAPER_MAP: Record<string, () => Scraper> = {
   "scrape:luma": () => new LumaScraper(),
   "scrape:devfolio": () => new DevfolioScraper(),
+  "scrape:mlh": () => new MLHScraper(),
+  "scrape:unstop": () => new UnstopScraper(),
+  "scrape:devpost": () => new DevpostScraper(),
+  "scrape:hackerearth": () => new HackerEarthScraper(),
+  "scrape:hackclub": () => new HackClubScraper(),
 };
 
 async function processJob(job: Job): Promise<{ created: number; updated: number }> {

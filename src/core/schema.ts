@@ -20,7 +20,7 @@ export const NormalizedHackathonSchema = z.object({
   
   // Source tracking
   sourceId: z.string(), // ID from the source platform
-  sourcePlatform: z.enum(["luma", "devfolio", "devpost", "other"]),
+  sourcePlatform: z.enum(["luma", "devfolio", "devpost", "mlh", "unstop", "hackerearth", "hackclub", "other"]),
   canonicalUrl: z.string().url(),
   
   // Metadata
