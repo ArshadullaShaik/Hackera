@@ -10,6 +10,9 @@ jobs:
   test-and-build:
     runs-on: ubuntu-latest
 
+    env:
+      DATABASE_URL: "postgresql://hackera_user:hackera_password@localhost:5432/hackera_db?schema=public"
+
     services:
       postgres:
         image: postgres:16-alpine
@@ -41,9 +44,7 @@ jobs:
         run: npx prisma generate
 
       - name: Run Database Migrations
-        env:
-          DATABASE_URL: "postgresql://hackera_user:hackera_password@localhost:5432/hackera_db?schema=public"
-        run: npx prisma migrate deploy
+        run: npx prisma db push
 
       - name: Typecheck & Build
         run: npm run build
