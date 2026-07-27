@@ -7,7 +7,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Hackathon {
@@ -15,24 +14,24 @@ model Hackathon {
   id String @id @default(uuid()) @db.Uuid
 
   // Source tracking
-  sourceId String
+  sourceId       String
   sourcePlatform String
 
   // Canonical fields
-  title String
-  description String @default("")
-  startsAt DateTime
-  endsAt DateTime?
+  title       String
+  description String    @default("")
+  startsAt    DateTime
+  endsAt      DateTime?
 
   // Location
   locationType String // "in-person" | "online" | "hybrid"
   locationName String?
-  latitude Float?
-  longitude Float?
+  latitude     Float?
+  longitude    Float?
 
   // URLs and metadata
   canonicalUrl String
-  imageUrl String?
+  imageUrl     String?
 
   // Raw payload for debugging/future enrichment
   rawSourcePayload Json
@@ -42,7 +41,7 @@ model Hackathon {
   updatedAt DateTime @updatedAt
 
   // Cross-source deduplication
-  duplicateOfId String?    @db.Uuid
+  duplicateOfId String?     @db.Uuid
   duplicateOf   Hackathon?  @relation("HackathonDuplicates", fields: [duplicateOfId], references: [id])
   duplicates    Hackathon[] @relation("HackathonDuplicates")
 
@@ -55,15 +54,15 @@ model Hackathon {
 }
 
 model ScrapeRun {
-  id             String   @id @default(uuid()) @db.Uuid
-  platform       String
-  status         String   // "completed" | "failed"
-  eventsCreated  Int      @default(0)
-  eventsUpdated  Int      @default(0)
-  errorMessage   String?
-  startedAt      DateTime
-  completedAt    DateTime
-  createdAt      DateTime @default(now())
+  id            String   @id @default(uuid()) @db.Uuid
+  platform      String
+  status        String // "completed" | "failed"
+  eventsCreated Int      @default(0)
+  eventsUpdated Int      @default(0)
+  errorMessage  String?
+  startedAt     DateTime
+  completedAt   DateTime
+  createdAt     DateTime @default(now())
 
   @@index([platform])
   @@index([createdAt])

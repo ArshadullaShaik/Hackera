@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import { LumaScraper } from "./scrapers/luma/luma.scraper.js";
 import { DevfolioScraper } from "./scrapers/devfolio/devfolio.scraper.js";
 import { HackathonRepository } from "./persistence/hackathon.repository.js";
