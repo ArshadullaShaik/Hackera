@@ -24,52 +24,52 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" class={`${inter.variable} ${spaceGrotesk.variable}`}>
+    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
       <body>
-        <header class="navbar">
-          <div class="nav-container">
-            <a href="#" class="brand-logo">
+        <header className="navbar">
+          <div className="nav-container">
+            <a href="#" className="brand-logo">
               GLOBAL HACK
             </a>
 
-            <nav class="nav-links">
-              <a href="#" class="nav-item active">
+            <nav className="nav-links">
+              <a href="#" className="nav-item active">
                 Explore
               </a>
-              <a href="#about" class="nav-item">
+              <a href="#about" className="nav-item">
                 Host
               </a>
-              <a href="#community" class="nav-item">
+              <a href="#community" className="nav-item">
                 Community
               </a>
-              <a href="#help" class="nav-item">
+              <a href="#help" className="nav-item">
                 Help
               </a>
             </nav>
 
-            <div class="nav-actions">
-              <button class="btn btn-outline">SIGN IN</button>
-              <button class="btn btn-dark">JOIN NOW</button>
+            <div className="nav-actions">
+              <button className="btn btn-outline">SIGN IN</button>
+              <button className="btn btn-dark">JOIN NOW</button>
             </div>
           </div>
         </header>
 
-        <main class="main-content">{children}</main>
+        <main className="main-content">{children}</main>
 
-        <footer class="footer">
-          <div class="footer-container">
-            <div class="footer-brand">
-              <span class="footer-logo">GLOBAL HACK</span>
+        <footer className="footer">
+          <div className="footer-container">
+            <div className="footer-brand">
+              <span className="footer-logo">GLOBAL HACK</span>
             </div>
 
-            <nav class="footer-nav">
+            <nav className="footer-nav">
               <a href="#">TERMS</a>
               <a href="#">PRIVACY</a>
               <a href="#">LANGUAGE</a>
               <a href="#">REGION</a>
             </nav>
 
-            <div class="footer-copyright">
+            <div className="footer-copyright">
               © 2026 GLOBAL HACKATHON. ALL RIGHTS RESERVED.
             </div>
           </div>

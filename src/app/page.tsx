@@ -88,12 +88,12 @@ export default function Home() {
   return (
     <>
       {/* Hero Section */}
-      <section class="hero-section">
-        <div class="hero-text">
-          <h1 class="hero-title">
-            THE HACKATHON <span class="highlight-purple">INDEX.</span>
+      <section className="hero-section">
+        <div className="hero-text">
+          <h1 className="hero-title">
+            THE HACKATHON <span className="highlight-purple">INDEX.</span>
           </h1>
-          <div class="hero-badge-lime">
+          <div className="hero-badge-lime">
             <p>
               We scrape the web to find the best hackathons, so you don&apos;t
               have to. Every event, every prize, one dashboard.
@@ -102,10 +102,10 @@ export default function Home() {
         </div>
 
         {/* Doodle Frame Illustration */}
-        <div class="doodle-frame">
+        <div className="doodle-frame">
           <svg
             viewBox="0 0 450 220"
-            class="doodle-svg"
+            className="doodle-svg"
             xmlns="http://www.w3.org/2000/svg"
           >
             <rect
@@ -275,17 +275,17 @@ export default function Home() {
       </section>
 
       {/* Filter Section */}
-      <section class="filter-section">
-        <div class="status-bar-wrapper">
-          <span class="status-badge">
+      <section className="filter-section">
+        <div className="status-bar-wrapper">
+          <span className="status-badge">
             ⚡ {total > 0 ? `${total.toLocaleString()} HACKATHONS INDEXED` : "LIVE AGGREGATED FEED"}
           </span>
         </div>
 
-        <div class="filter-card">
-          <div class="filter-form">
-            <div class="input-group search-input-group">
-              <span class="search-icon">🔍</span>
+        <div className="filter-card">
+          <div className="filter-form">
+            <div className="input-group search-input-group">
+              <span className="search-icon">🔍</span>
               <input
                 type="text"
                 placeholder="Search aggregated events, themes, or tech..."
@@ -294,7 +294,7 @@ export default function Home() {
               />
             </div>
 
-            <div class="select-group">
+            <div className="select-group">
               <select
                 value={locationType}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setLocationType(e.target.value)}
@@ -306,7 +306,7 @@ export default function Home() {
               </select>
             </div>
 
-            <div class="select-group">
+            <div className="select-group">
               <select
                 value={platform}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setPlatform(e.target.value)}
@@ -322,7 +322,7 @@ export default function Home() {
               </select>
             </div>
 
-            <button class="btn btn-purple" onClick={() => fetchHackathons(1, false)}>
+            <button className="btn btn-purple" onClick={() => fetchHackathons(1, false)}>
               FILTER
             </button>
           </div>
@@ -331,19 +331,19 @@ export default function Home() {
 
       {/* Active Tags */}
       {(search || locationType || platform) && (
-        <div class="active-tags-bar">
+        <div className="active-tags-bar">
           {search && (
-            <span class="active-tag-chip" onClick={() => clearFilter("search")}>
+            <span className="active-tag-chip" onClick={() => clearFilter("search")}>
               Search: &quot;{search}&quot; ✖
             </span>
           )}
           {locationType && (
-            <span class="active-tag-chip" onClick={() => clearFilter("location")}>
+            <span className="active-tag-chip" onClick={() => clearFilter("location")}>
               Location: {locationType.toUpperCase()} ✖
             </span>
           )}
           {platform && (
-            <span class="active-tag-chip" onClick={() => clearFilter("platform")}>
+            <span className="active-tag-chip" onClick={() => clearFilter("platform")}>
               Platform: {platform.toUpperCase()} ✖
             </span>
           )}
@@ -351,16 +351,16 @@ export default function Home() {
       )}
 
       {/* Hackathons Grid */}
-      <section class="grid-section">
-        <div class="hackathons-grid">
+      <section className="grid-section">
+        <div className="hackathons-grid">
           {loading && hackathons.length === 0 ? (
             <>
-              <div class="card skeleton-card"></div>
-              <div class="card skeleton-card"></div>
-              <div class="card skeleton-card"></div>
+              <div className="card skeleton-card"></div>
+              <div className="card skeleton-card"></div>
+              <div className="card skeleton-card"></div>
             </>
           ) : hackathons.length === 0 ? (
-            <div class="empty-state">
+            <div className="empty-state">
               <h3>NO HACKATHONS FOUND</h3>
               <p>
                 Try clearing your search query or selecting a different location or platform filter.
@@ -402,13 +402,13 @@ export default function Home() {
               }
 
               return (
-                <article key={item.id} class="card">
-                  <div class="card-header">
+                <article key={item.id} className="card">
+                  <div className="card-header">
                     {item.imageUrl ? (
                       <img
                         src={item.imageUrl}
                         alt={item.title}
-                        class="card-img"
+                        className="card-img"
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = "none";
                           const next = (e.target as HTMLElement).nextElementSibling;
@@ -417,34 +417,34 @@ export default function Home() {
                       />
                     ) : null}
                     <div
-                      class="card-img-placeholder"
+                      className="card-img-placeholder"
                       style={{ display: item.imageUrl ? "none" : "flex" }}
                     >
                       {platformName}
                     </div>
-                    <span class={`badge-top-left ${locBadgeClass}`}>
+                    <span className={`badge-top-left ${locBadgeClass}`}>
                       {locBadgeText}
                     </span>
-                    <span class="badge-top-right">⚡ {platformName}</span>
+                    <span className="badge-top-right">⚡ {platformName}</span>
                   </div>
 
-                  <div class="card-body">
-                    <div class="card-tags">
-                      <span class="pill-tag">{platformName}</span>
-                      <span class="pill-tag pill-tag-date">
+                  <div className="card-body">
+                    <div className="card-tags">
+                      <span className="pill-tag">{platformName}</span>
+                      <span className="pill-tag pill-tag-date">
                         📅 {dateFormatted}
                       </span>
                     </div>
 
-                    <h2 class="card-title">{item.title}</h2>
+                    <h2 className="card-title">{item.title}</h2>
 
-                    <p class="card-description">
+                    <p className="card-description">
                       {item.description ||
                         "Join this exciting hackathon challenge and build innovative solutions."}
                     </p>
 
-                    <div class="card-footer">
-                      <div class="prize-info">
+                    <div className="card-footer">
+                      <div className="prize-info">
                         <span>{prizeText}</span>
                       </div>
 
@@ -452,7 +452,7 @@ export default function Home() {
                         href={item.canonicalUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        class="btn-arrow-icon"
+                        className="btn-arrow-icon"
                         title="View Hackathon Page"
                       >
                         ➔
@@ -468,12 +468,12 @@ export default function Home() {
 
       {/* CTA Button */}
       {page < totalPages && (
-        <section class="cta-section">
-          <button class="btn-cta-banner" onClick={handleLoadMore}>
+        <section className="cta-section">
+          <button className="btn-cta-banner" onClick={handleLoadMore}>
             <span>
               LOAD MORE ({hackathons.length} OF {total} SHOWN)
             </span>
-            <span class="arrow">➔</span>
+            <span className="arrow">➔</span>
           </button>
         </section>
       )}

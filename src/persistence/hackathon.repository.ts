@@ -1,6 +1,6 @@
 import { Prisma, PrismaClient } from "@prisma/client";
-import { NormalizedHackathon } from "../core/schema.js";
-import { logger } from "../core/logger.js";
+import { NormalizedHackathon } from "../core/schema";
+import { logger } from "../core/logger";
 
 export class HackathonRepository {
   constructor(private prisma: PrismaClient) {}
@@ -168,7 +168,7 @@ export class HackathonRepository {
    * Identifies near-duplicate hackathons across platforms and links duplicate records.
    */
   async runCrossSourceDeduplication(): Promise<number> {
-    const { DedupService } = await import("../dedup/dedup.service.js");
+    const { DedupService } = await import("../dedup/dedup.service");
     const dedupService = new DedupService();
 
     const allHackathons = await this.prisma.hackathon.findMany({

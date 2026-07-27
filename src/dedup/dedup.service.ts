@@ -1,5 +1,5 @@
-import { NormalizedHackathon } from "../core/schema.js";
-import { logger } from "../core/logger.js";
+import { NormalizedHackathon } from "../core/schema";
+import { logger } from "../core/logger";
 
 /**
  * Normalize title by converting to lowercase, replacing special characters and stripping extra whitespace.
