@@ -419,9 +419,12 @@ export default function Home() {
 
               // Extract or Detect Tracks
               let trackBadges: string[] = [];
-              const matchTrack = rawDesc.match(/Tracks:\s*([^\]]+)/i);
+              const matchTrack = rawDesc.match(/Tracks:\s*([^\]|]+)/i);
               if (matchTrack) {
-                trackBadges = matchTrack[1].split(",").map((t) => t.trim());
+                trackBadges = matchTrack[1]
+                  .split(",")
+                  .map((t) => t.trim())
+                  .filter(Boolean);
               } else {
                 const combined = `${item.title} ${rawDesc}`.toLowerCase();
                 if (/\b(game|gaming|unity|unreal|roblox|arcade|gamedev)\b/i.test(combined)) trackBadges.push("Game Dev");

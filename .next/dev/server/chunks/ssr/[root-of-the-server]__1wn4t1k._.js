@@ -108,21 +108,14 @@ function RootLayout({ children }) {
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
-                                        href: "#about",
-                                        className: "nav-item",
-                                        children: "Host"
-                                    }, void 0, false, {
-                                        fileName: "[project]/src/app/layout.tsx",
-                                        lineNumber: 39,
-                                        columnNumber: 15
-                                    }, this),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
-                                        href: "#community",
+                                        href: "https://www.reddit.com/r/Hackera/s/ufHNalBCJd",
+                                        target: "_blank",
+                                        rel: "noopener noreferrer",
                                         className: "nav-item",
                                         children: "Community"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/layout.tsx",
-                                        lineNumber: 42,
+                                        lineNumber: 40,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
@@ -131,7 +124,7 @@ function RootLayout({ children }) {
                                         children: "Help"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/layout.tsx",
-                                        lineNumber: 45,
+                                        lineNumber: 48,
                                         columnNumber: 15
                                     }, this)
                                 ]
@@ -148,7 +141,7 @@ function RootLayout({ children }) {
                                         children: "SIGN IN"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/layout.tsx",
-                                        lineNumber: 51,
+                                        lineNumber: 54,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -156,13 +149,13 @@ function RootLayout({ children }) {
                                         children: "JOIN NOW"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/layout.tsx",
-                                        lineNumber: 52,
+                                        lineNumber: 55,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/layout.tsx",
-                                lineNumber: 50,
+                                lineNumber: 53,
                                 columnNumber: 13
                             }, this)
                         ]
@@ -181,7 +174,7 @@ function RootLayout({ children }) {
                     children: children
                 }, void 0, false, {
                     fileName: "[project]/src/app/layout.tsx",
-                    lineNumber: 57,
+                    lineNumber: 60,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("footer", {
@@ -196,12 +189,12 @@ function RootLayout({ children }) {
                                     children: "GLOBAL HACK"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/layout.tsx",
-                                    lineNumber: 62,
+                                    lineNumber: 65,
                                     columnNumber: 15
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/app/layout.tsx",
-                                lineNumber: 61,
+                                lineNumber: 64,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("nav", {
@@ -212,7 +205,7 @@ function RootLayout({ children }) {
                                         children: "TERMS"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/layout.tsx",
-                                        lineNumber: 66,
+                                        lineNumber: 69,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
@@ -220,7 +213,7 @@ function RootLayout({ children }) {
                                         children: "PRIVACY"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/layout.tsx",
-                                        lineNumber: 67,
+                                        lineNumber: 70,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
@@ -228,7 +221,7 @@ function RootLayout({ children }) {
                                         children: "LANGUAGE"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/layout.tsx",
-                                        lineNumber: 68,
+                                        lineNumber: 71,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
@@ -236,13 +229,13 @@ function RootLayout({ children }) {
                                         children: "REGION"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/layout.tsx",
-                                        lineNumber: 69,
+                                        lineNumber: 72,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/layout.tsx",
-                                lineNumber: 65,
+                                lineNumber: 68,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -250,18 +243,18 @@ function RootLayout({ children }) {
                                 children: "© 2026 GLOBAL HACKATHON. ALL RIGHTS RESERVED."
                             }, void 0, false, {
                                 fileName: "[project]/src/app/layout.tsx",
-                                lineNumber: 72,
+                                lineNumber: 75,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/layout.tsx",
-                        lineNumber: 60,
+                        lineNumber: 63,
                         columnNumber: 11
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/src/app/layout.tsx",
-                    lineNumber: 59,
+                    lineNumber: 62,
                     columnNumber: 9
                 }, this)
             ]

@@ -36,10 +36,13 @@ export default function RootLayout({
               <a href="#" className="nav-item active">
                 Explore
               </a>
-              <a href="#about" className="nav-item">
-                Host
-              </a>
-              <a href="#community" className="nav-item">
+
+              <a
+                href="https://www.reddit.com/r/Hackera/s/ufHNalBCJd"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="nav-item"
+              >
                 Community
               </a>
               <a href="#help" className="nav-item">
