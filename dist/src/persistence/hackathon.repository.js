@@ -1,4 +1,4 @@
-import { logger } from "../core/logger";
+import { logger } from "../core/logger.js";
 export class HackathonRepository {
     constructor(prisma) {
         this.prisma = prisma;
@@ -84,6 +84,19 @@ export class HackathonRepository {
         }
         return { created, updated };
     }
+    /** Remove source records that are no longer present in a successful full scrape. */
+    async deleteMissingFromSource(sourcePlatform, sourceIds) {
+        if (sourceIds.length === 0)
+            return 0;
+        const result = await this.prisma.hackathon.deleteMany({
+            where: {
+                sourcePlatform,
+                sourceId: { notIn: sourceIds },
+            },
+        });
+        logger.info({ sourcePlatform, deletedCount: result.count }, "Removed stale source hackathons");
+        return result.count;
+    }
     /**
      * Automatically check whole database and delete hackathons that have ended.
      * A hackathon is considered ended if:
@@ -91,11 +104,12 @@ export class HackathonRepository {
      * 2. endsAt is null and startsAt < now
      */
     async deleteEndedHackathons(now = new Date()) {
+        const graceDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         const result = await this.prisma.hackathon.deleteMany({
             where: {
                 OR: [
                     { endsAt: { lt: now } },
-                    { endsAt: null, startsAt: { lt: now } },
+                    { endsAt: null, startsAt: { lt: graceDate } },
                 ],
             },
         });
@@ -136,12 +150,13 @@ export class HackathonRepository {
             }
             conditions.push({ startsAt: startsAtFilter });
         }
-        // Automatically exclude ended hackathons
+        // Automatically exclude ended hackathons (allowing 30-day window if endsAt is null)
         const now = new Date();
+        const graceDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         conditions.push({
             OR: [
                 { endsAt: { gte: now } },
-                { endsAt: null, startsAt: { gte: now } },
+                { endsAt: null, startsAt: { gte: graceDate } },
             ],
         });
         const where = { AND: conditions };
@@ -162,7 +177,7 @@ export class HackathonRepository {
      * Identifies near-duplicate hackathons across platforms and links duplicate records.
      */
     async runCrossSourceDeduplication() {
-        const { DedupService } = await import("../dedup/dedup.service");
+        const { DedupService } = await import("../dedup/dedup.service.js");
         const dedupService = new DedupService();
         const allHackathons = await this.prisma.hackathon.findMany({
             select: {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getPrismaClient } from "../../../persistence/db";
-import { HackathonRepository } from "../../../persistence/hackathon.repository";
-import { HackathonQuerySchema } from "../../../api/middleware/validate";
+import { getPrismaClient } from "../../../persistence/db.js";
+import { HackathonRepository } from "../../../persistence/hackathon.repository.js";
+import { HackathonQuerySchema } from "../../../api/middleware/validate.js";
 export async function GET(request) {
     try {
         const { searchParams } = new URL(request.url);

@@ -281,7 +281,9 @@ export default function Home() {
       <section className="filter-section">
         <div className="status-bar-wrapper">
           <span className="status-badge">
-            ⚡ {total > 0 ? `${total.toLocaleString()} HACKATHONS INDEXED` : "LIVE AGGREGATED FEED"}
+            ⚡ {platform
+              ? `${total.toLocaleString()} ${platform.toUpperCase()} HACKATHONS`
+              : total > 0 ? `${total.toLocaleString()} HACKATHONS INDEXED` : "LIVE AGGREGATED FEED"}
           </span>
         </div>
 

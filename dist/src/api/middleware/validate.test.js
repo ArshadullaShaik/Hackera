@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { HackathonQuerySchema } from "./validate";
+import { HackathonQuerySchema } from "./validate.js";
 describe("HackathonQuerySchema", () => {
     it("should validate all platform options in UI", () => {
         const platforms = ["luma", "devfolio", "devpost", "mlh", "unstop", "hackerearth", "hackclub", "other"];

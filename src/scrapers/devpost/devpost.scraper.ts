@@ -12,17 +12,18 @@ import {
 
 export class DevpostScraper implements Scraper {
   private readonly baseUrl = "https://devpost.com/api/hackathons";
-  private readonly maxPages = 3;
 
   async scrape(): Promise<NormalizedHackathon[]> {
     logger.info({ baseUrl: this.baseUrl }, "Starting Devpost scrape");
 
     const allRawItems: any[] = [];
+    let totalPages = 1;
 
-    for (let page = 1; page <= this.maxPages; page++) {
+    for (let page = 1; page <= totalPages; page++) {
       try {
         const response = await axios.get(this.baseUrl, {
           params: {
+            order_by: "recently-added",
             "status[]": ["upcoming", "open"],
             page,
           },
@@ -41,6 +42,12 @@ export class DevpostScraper implements Scraper {
 
         const items = response.data?.hackathons || [];
         allRawItems.push(...items);
+
+        const totalCount = response.data?.meta?.total_count;
+        const perPage = response.data?.meta?.per_page;
+        if (page === 1 && Number.isFinite(totalCount) && Number.isFinite(perPage) && perPage > 0) {
+          totalPages = Math.ceil(totalCount / perPage);
+        }
 
         if (items.length === 0) {
           break;
@@ -89,31 +96,34 @@ export class DevpostScraper implements Scraper {
     });
 
     let startsAt = new Date().toISOString();
-    let endsAt: string | undefined = undefined;
+    let endsAt: string | undefined;
     const dateRange = raw.submission_period_dates || "";
 
     if (dateRange) {
       const parts = dateRange.split(" - ");
-      const yearMatch = dateRange.match(/\d{4}/);
-      const year = yearMatch ? yearMatch[0] : new Date().getFullYear().toString();
+      const yearMatch = dateRange.match(/\d{4}\s*$/);
+      const year = yearMatch?.[0]?.trim();
+      const startMonth = parts[0]?.match(/[A-Za-z]+/)?.[0];
 
-      if (parts.length === 2) {
-        const startStr = parts[0].includes(year) ? parts[0] : `${parts[0]}, ${year}`;
-        const endStr = parts[1].includes(year) ? parts[1] : `${parts[1]}, ${year}`;
+      if (parts.length === 2 && year && startMonth) {
+        const startStr = /\d{4}/.test(parts[0]) ? parts[0] : `${parts[0]}, ${year}`;
+        const endStr = /^[A-Za-z]/.test(parts[1].trim()) ? parts[1] : `${startMonth} ${parts[1]}`;
 
-        const pStart = new Date(startStr);
+        const pStart = new Date(`${startStr} UTC`);
         if (!isNaN(pStart.getTime())) startsAt = pStart.toISOString();
 
-        const pEnd = new Date(endStr);
+        const pEnd = new Date(`${endStr} UTC`);
         if (!isNaN(pEnd.getTime())) {
-          pEnd.setHours(23, 59, 59, 999);
+          if (pStart > pEnd) pStart.setUTCFullYear(pStart.getUTCFullYear() - 1);
+          startsAt = pStart.toISOString();
+          pEnd.setUTCHours(23, 59, 59, 999);
           endsAt = pEnd.toISOString();
         }
       } else if (parts.length === 1) {
-        const pStart = new Date(parts[0]);
+        const pStart = new Date(`${parts[0]} UTC`);
         if (!isNaN(pStart.getTime())) {
           startsAt = pStart.toISOString();
-          pStart.setHours(23, 59, 59, 999);
+          pStart.setUTCHours(23, 59, 59, 999);
           endsAt = pStart.toISOString();
         }
       }

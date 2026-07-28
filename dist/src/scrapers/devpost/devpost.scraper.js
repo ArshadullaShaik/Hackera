@@ -4,21 +4,22 @@ import { determineLocationType, detectTracks, extractPrizePool, formatDescriptio
 export class DevpostScraper {
     constructor() {
         this.baseUrl = "https://devpost.com/api/hackathons";
-        this.maxPages = 3;
     }
     async scrape() {
         logger.info({ baseUrl: this.baseUrl }, "Starting Devpost scrape");
         const allRawItems = [];
-        for (let page = 1; page <= this.maxPages; page++) {
+        let totalPages = 1;
+        for (let page = 1; page <= totalPages; page++) {
             try {
                 const response = await axios.get(this.baseUrl, {
                     params: {
+                        order_by: "recently-added",
                         "status[]": ["upcoming", "open"],
                         page,
                     },
                     headers: {
-                        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                        Accept: "*/*",
+                        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                        Accept: "application/json, text/plain, */*",
                         "Accept-Language": "en-US,en;q=0.9",
                         Referer: "https://devpost.com/hackathons",
                         "Sec-Fetch-Dest": "empty",
@@ -29,6 +30,11 @@ export class DevpostScraper {
                 });
                 const items = response.data?.hackathons || [];
                 allRawItems.push(...items);
+                const totalCount = response.data?.meta?.total_count;
+                const perPage = response.data?.meta?.per_page;
+                if (page === 1 && Number.isFinite(totalCount) && Number.isFinite(perPage) && perPage > 0) {
+                    totalPages = Math.ceil(totalCount / perPage);
+                }
                 if (items.length === 0) {
                     break;
                 }
@@ -67,7 +73,38 @@ export class DevpostScraper {
             locationName: locName,
             isOnline: locName?.toLowerCase().includes("online") || locName?.toLowerCase().includes("virtual"),
         });
-        const { startsAt, endsAt } = this.parseSubmissionDates(raw.submission_period_dates);
+        let startsAt = new Date().toISOString();
+        let endsAt;
+        const dateRange = raw.submission_period_dates || "";
+        if (dateRange) {
+            const parts = dateRange.split(" - ");
+            const yearMatch = dateRange.match(/\d{4}\s*$/);
+            const year = yearMatch?.[0]?.trim();
+            const startMonth = parts[0]?.match(/[A-Za-z]+/)?.[0];
+            if (parts.length === 2 && year && startMonth) {
+                const startStr = /\d{4}/.test(parts[0]) ? parts[0] : `${parts[0]}, ${year}`;
+                const endStr = /^[A-Za-z]/.test(parts[1].trim()) ? parts[1] : `${startMonth} ${parts[1]}`;
+                const pStart = new Date(`${startStr} UTC`);
+                if (!isNaN(pStart.getTime()))
+                    startsAt = pStart.toISOString();
+                const pEnd = new Date(`${endStr} UTC`);
+                if (!isNaN(pEnd.getTime())) {
+                    if (pStart > pEnd)
+                        pStart.setUTCFullYear(pStart.getUTCFullYear() - 1);
+                    startsAt = pStart.toISOString();
+                    pEnd.setUTCHours(23, 59, 59, 999);
+                    endsAt = pEnd.toISOString();
+                }
+            }
+            else if (parts.length === 1) {
+                const pStart = new Date(`${parts[0]} UTC`);
+                if (!isNaN(pStart.getTime())) {
+                    startsAt = pStart.toISOString();
+                    pStart.setUTCHours(23, 59, 59, 999);
+                    endsAt = pStart.toISOString();
+                }
+            }
+        }
         let imageUrl = raw.thumbnail_url;
         if (imageUrl && imageUrl.startsWith("//")) {
             imageUrl = `https:${imageUrl}`;
@@ -88,22 +125,6 @@ export class DevpostScraper {
             imageUrl: imageUrl && imageUrl.startsWith("http") ? imageUrl : undefined,
             rawSourcePayload: raw,
         };
-    }
-    parseSubmissionDates(dateRange) {
-        const fallback = { startsAt: new Date().toISOString() };
-        if (typeof dateRange !== "string")
-            return fallback;
-        const match = dateRange.match(/^([A-Za-z]+\s+\d{1,2})(?:,\s*(\d{4}))?\s*-\s*([A-Za-z]+\s+\d{1,2}),\s*(\d{4})$/);
-        if (!match)
-            return fallback;
-        const [, startDay, explicitStartYear, endDay, endYear] = match;
-        const end = new Date(`${endDay}, ${endYear} UTC`);
-        const start = new Date(`${startDay}, ${explicitStartYear || endYear} UTC`);
-        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()))
-            return fallback;
-        if (!explicitStartYear && start > end)
-            start.setFullYear(start.getFullYear() - 1);
-        return { startsAt: start.toISOString(), endsAt: end.toISOString() };
     }
 }
 //# sourceMappingURL=devpost.scraper.js.map

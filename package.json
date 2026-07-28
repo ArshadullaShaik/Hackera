@@ -15,7 +15,7 @@
   "type": "module",
   "main": "dist/src/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --project tsconfig.build.json && node scripts/fix-esm-imports.mjs",
     "dev": "node --loader ts-node/esm src/index.ts",
     "dev:next": "next dev",
     "build:next": "next build",

@@ -42,6 +42,9 @@ async function processJob(job) {
             return true;
         });
         const result = await repository.upsertBatch(activeHackathons);
+        if (platform === "devpost") {
+            await repository.deleteMissingFromSource(platform, activeHackathons.map((hackathon) => hackathon.sourceId));
+        }
         // Run cross-source deduplication pass
         await repository.runCrossSourceDeduplication();
         // Auto-clean any ended hackathons from database

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { HackathonRepository } from "./hackathon.repository";
+import { HackathonRepository } from "./hackathon.repository.js";
 describe("HackathonRepository - Auto Cleanup & Filtering", () => {
     let mockPrisma;
     let repository;
@@ -13,16 +13,17 @@ describe("HackathonRepository - Auto Cleanup & Filtering", () => {
         };
         repository = new HackathonRepository(mockPrisma);
     });
-    it("deleteEndedHackathons removes events where endsAt < now or startsAt < now when endsAt is null", async () => {
+    it("deleteEndedHackathons removes events where endsAt < now or startsAt < graceDate when endsAt is null", async () => {
         mockPrisma.hackathon.deleteMany.mockResolvedValue({ count: 5 });
         const testNow = new Date("2026-07-28T12:00:00.000Z");
+        const graceDate = new Date(testNow.getTime() - 30 * 24 * 60 * 60 * 1000);
         const deleted = await repository.deleteEndedHackathons(testNow);
         expect(deleted).toBe(5);
         expect(mockPrisma.hackathon.deleteMany).toHaveBeenCalledWith({
             where: {
                 OR: [
                     { endsAt: { lt: testNow } },
-                    { endsAt: null, startsAt: { lt: testNow } },
+                    { endsAt: null, startsAt: { lt: graceDate } },
                 ],
             },
         });
@@ -42,6 +43,17 @@ describe("HackathonRepository - Auto Cleanup & Filtering", () => {
             take: 10,
             skip: 0,
         }));
+    });
+    it("removes stale records from a fully scraped source", async () => {
+        mockPrisma.hackathon.deleteMany.mockResolvedValue({ count: 3 });
+        const deleted = await repository.deleteMissingFromSource("devpost", ["1", "2"]);
+        expect(deleted).toBe(3);
+        expect(mockPrisma.hackathon.deleteMany).toHaveBeenCalledWith({
+            where: {
+                sourcePlatform: "devpost",
+                sourceId: { notIn: ["1", "2"] },
+            },
+        });
     });
 });
 //# sourceMappingURL=hackathon.repository.test.js.map

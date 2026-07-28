@@ -55,4 +55,18 @@ describe("HackathonRepository - Auto Cleanup & Filtering", () => {
       })
     );
   });
+
+  it("removes stale records from a fully scraped source", async () => {
+    mockPrisma.hackathon.deleteMany.mockResolvedValue({ count: 3 });
+
+    const deleted = await repository.deleteMissingFromSource("devpost", ["1", "2"]);
+
+    expect(deleted).toBe(3);
+    expect(mockPrisma.hackathon.deleteMany).toHaveBeenCalledWith({
+      where: {
+        sourcePlatform: "devpost",
+        sourceId: { notIn: ["1", "2"] },
+      },
+    });
+  });
 });

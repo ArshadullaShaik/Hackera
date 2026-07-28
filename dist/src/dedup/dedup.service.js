@@ -1,4 +1,4 @@
-import { logger } from "../core/logger";
+import { logger } from "../core/logger.js";
 /**
  * Normalize title by converting to lowercase, replacing special characters and stripping extra whitespace.
  */

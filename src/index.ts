@@ -79,6 +79,12 @@ async function main() {
       );
 
       const result = await repository.upsertBatch(activeEvents);
+      if (events[0]?.sourcePlatform === "devpost") {
+        await repository.deleteMissingFromSource(
+          "devpost",
+          activeEvents.map((hackathon) => hackathon.sourceId)
+        );
+      }
       totalCreated += result.created;
       totalUpdated += result.updated;
 

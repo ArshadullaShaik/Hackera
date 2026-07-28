@@ -251,6 +251,22 @@ class HackathonRepository {
             updated
         };
     }
+    /** Remove source records that are no longer present in a successful full scrape. */ async deleteMissingFromSource(sourcePlatform, sourceIds) {
+        if (sourceIds.length === 0) return 0;
+        const result = await this.prisma.hackathon.deleteMany({
+            where: {
+                sourcePlatform,
+                sourceId: {
+                    notIn: sourceIds
+                }
+            }
+        });
+        __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].info({
+            sourcePlatform,
+            deletedCount: result.count
+        }, "Removed stale source hackathons");
+        return result.count;
+    }
     /**
    * Automatically check whole database and delete hackathons that have ended.
    * A hackathon is considered ended if:

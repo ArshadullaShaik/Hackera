@@ -49,6 +49,13 @@ async function processJob(job: Job): Promise<{ created: number; updated: number 
 
     const result = await repository.upsertBatch(activeHackathons);
 
+    if (platform === "devpost") {
+      await repository.deleteMissingFromSource(
+        platform,
+        activeHackathons.map((hackathon) => hackathon.sourceId)
+      );
+    }
+
     // Run cross-source deduplication pass
     await repository.runCrossSourceDeduplication();
 

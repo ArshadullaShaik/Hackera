@@ -63,6 +63,9 @@ async function main() {
             });
             logger.info({ platform, count: activeEvents.length }, `Persisting ${activeEvents.length} active events from ${platform}`);
             const result = await repository.upsertBatch(activeEvents);
+            if (events[0]?.sourcePlatform === "devpost") {
+                await repository.deleteMissingFromSource("devpost", activeEvents.map((hackathon) => hackathon.sourceId));
+            }
             totalCreated += result.created;
             totalUpdated += result.updated;
             console.log(`[${platform}] Created: ${result.created}, Updated: ${result.updated}`);
