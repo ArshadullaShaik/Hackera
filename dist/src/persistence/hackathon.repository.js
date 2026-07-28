@@ -118,7 +118,7 @@ export class HackathonRepository {
     }
     /**
      * Query hackathons with combined optional filters + pagination.
-     * Excludes ended hackathons and orders latest first (startsAt desc).
+     * Excludes ended hackathons and orders soonest first (startsAt asc).
      * Returns both data and total count for pagination metadata.
      */
     async findFiltered(filters) {
@@ -161,16 +161,48 @@ export class HackathonRepository {
         });
         const where = { AND: conditions };
         const offset = (filters.page - 1) * filters.limit;
-        const [data, total] = await Promise.all([
-            this.prisma.hackathon.findMany({
-                where,
-                take: filters.limit,
-                skip: offset,
-                orderBy: { startsAt: "desc" },
-            }),
-            this.prisma.hackathon.count({ where }),
-        ]);
-        return { data, total };
+        // Sorting by prize is calculated from source metadata, so the current set must
+        // be ordered before pagination is applied.
+        const allData = await this.prisma.hackathon.findMany({
+            where,
+            orderBy: { startsAt: "asc" },
+        });
+        const prizeValue = (hackathon) => {
+            const raw = hackathon.rawSourcePayload || {};
+            const text = [raw.prize_amount, raw.prize_money, raw.prizes, hackathon.description]
+                .filter(Boolean)
+                .join(" ")
+                .replace(/<[^>]*>/g, " ");
+            const match = text.match(/(?:\$|₹|€|£|USD|INR|Rs\.?)[\s]*([\d,.]+)\s*(k|m|million|thousand|lakh|crore)?/i);
+            if (!match)
+                return 0;
+            const amount = Number(match[1].replace(/,/g, ""));
+            const multiplier = {
+                k: 1000,
+                thousand: 1000,
+                m: 1000000,
+                million: 1000000,
+                lakh: 100000,
+                crore: 10000000,
+            }[match[2]?.toLowerCase() || ""] || 1;
+            return Number.isFinite(amount) ? amount * multiplier : 0;
+        };
+        const isCurrent = (hackathon) => new Date(hackathon.startsAt) <= now;
+        allData.sort((a, b) => {
+            const currentOrder = Number(isCurrent(b)) - Number(isCurrent(a));
+            if (currentOrder)
+                return currentOrder;
+            if (isCurrent(a)) {
+                const prizeOrder = prizeValue(b) - prizeValue(a);
+                if (prizeOrder)
+                    return prizeOrder;
+            }
+            return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
+        });
+        return {
+            data: allData.slice(offset, offset + filters.limit),
+            total: allData.length,
+        };
     }
     /**
      * Run cross-source deduplication on all records.

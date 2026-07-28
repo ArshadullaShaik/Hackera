@@ -84,11 +84,18 @@ export default function Home() {
                         }
                         const platformName = (item.sourcePlatform || "OTHER").toUpperCase();
                         const startDate = item.startsAt ? new Date(item.startsAt) : null;
-                        const dateFormatted = startDate && !isNaN(startDate.getTime())
-                            ? startDate.toLocaleDateString("en-US", {
+                        const endDate = item.endsAt ? new Date(item.endsAt) : null;
+                        const formatDate = (date) => date && !isNaN(date.getTime())
+                            ? date.toLocaleDateString("en-US", {
                                 month: "short",
                                 day: "numeric",
+                                timeZone: "UTC",
                             })
+                            : null;
+                        const startDateFormatted = formatDate(startDate);
+                        const endDateFormatted = formatDate(endDate);
+                        const dateRange = startDateFormatted
+                            ? `${startDateFormatted}${endDateFormatted ? ` – ${endDateFormatted}` : ""}`
                             : "UPCOMING";
                         // Extract Prize Pool ($ or ₹)
                         let prizeText = "🏆 Cash & Prizes";
@@ -149,7 +156,7 @@ export default function Home() {
                                                 const next = e.target.nextElementSibling;
                                                 if (next)
                                                     next.style.display = "flex";
-                                            } })) : null, _jsx("div", { className: "card-img-placeholder", style: { display: item.imageUrl ? "none" : "flex" }, children: platformName }), _jsx("span", { className: `badge-top-left ${locBadgeClass}`, children: locBadgeText }), _jsxs("span", { className: "badge-top-right", children: ["\u26A1 ", platformName] })] }), _jsxs("div", { className: "card-body", children: [_jsxs("div", { className: "card-tags", children: [_jsx("span", { className: "pill-tag", children: platformName }), _jsxs("span", { className: "pill-tag pill-tag-date", children: ["\uD83D\uDCC5 ", dateFormatted] }), trackBadges.map((t) => (_jsxs("span", { className: "pill-tag", style: { background: "#fef08a", color: "#000" }, children: [trackIcons[t] || "🎯", " ", t.toUpperCase()] }, t)))] }), _jsx("h2", { className: "card-title", children: item.title }), _jsx("p", { className: "card-description", children: item.description ||
+                                            } })) : null, _jsx("div", { className: "card-img-placeholder", style: { display: item.imageUrl ? "none" : "flex" }, children: platformName }), _jsx("span", { className: `badge-top-left ${locBadgeClass}`, children: locBadgeText }), _jsxs("span", { className: "badge-top-right", children: ["\u26A1 ", platformName] })] }), _jsxs("div", { className: "card-body", children: [_jsxs("div", { className: "card-tags", children: [_jsx("span", { className: "pill-tag", children: platformName }), _jsxs("span", { className: "pill-tag pill-tag-date", children: ["\uD83D\uDCC5 ", dateRange] }), trackBadges.map((t) => (_jsxs("span", { className: "pill-tag", style: { background: "#fef08a", color: "#000" }, children: [trackIcons[t] || "🎯", " ", t.toUpperCase()] }, t)))] }), _jsx("h2", { className: "card-title", children: item.title }), _jsx("p", { className: "card-description", children: item.description ||
                                                 "Join this exciting hackathon challenge and build innovative solutions." }), _jsxs("div", { className: "card-footer", children: [_jsx("div", { className: "prize-info", children: _jsx("span", { children: prizeText }) }), _jsx("a", { href: item.canonicalUrl, target: "_blank", rel: "noopener noreferrer", className: "btn-arrow-icon", title: "View Hackathon Page", children: "\u2794" })] })] })] }, item.id));
                     })) }) }), page < totalPages && (_jsx("section", { className: "cta-section", children: _jsxs("button", { className: "btn-cta-banner", onClick: handleLoadMore, children: [_jsxs("span", { children: ["LOAD MORE (", hackathons.length, " OF ", total, " SHOWN)"] }), _jsx("span", { className: "arrow", children: "\u2794" })] }) }))] }));
 }

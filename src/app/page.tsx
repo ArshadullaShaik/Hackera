@@ -389,13 +389,20 @@ export default function Home() {
 
               const platformName = (item.sourcePlatform || "OTHER").toUpperCase();
               const startDate = item.startsAt ? new Date(item.startsAt) : null;
-              const dateFormatted =
-                startDate && !isNaN(startDate.getTime())
-                  ? startDate.toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })
-                  : "UPCOMING";
+              const endDate = item.endsAt ? new Date(item.endsAt) : null;
+              const formatDate = (date: Date | null) =>
+                date && !isNaN(date.getTime())
+                  ? date.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      timeZone: "UTC",
+                    })
+                  : null;
+              const startDateFormatted = formatDate(startDate);
+              const endDateFormatted = formatDate(endDate);
+              const dateRange = startDateFormatted
+                ? `${startDateFormatted}${endDateFormatted ? ` – ${endDateFormatted}` : ""}`
+                : "UPCOMING";
 
               // Extract Prize Pool ($ or ₹)
               let prizeText = "🏆 Cash & Prizes";
@@ -477,7 +484,7 @@ export default function Home() {
                     <div className="card-tags">
                       <span className="pill-tag">{platformName}</span>
                       <span className="pill-tag pill-tag-date">
-                        📅 {dateFormatted}
+                        📅 {dateRange}
                       </span>
                       {trackBadges.map((t) => (
                         <span key={t} className="pill-tag" style={{ background: "#fef08a", color: "#000" }}>

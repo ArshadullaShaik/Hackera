@@ -29,7 +29,7 @@ export declare class HackathonRepository {
     deleteEndedHackathons(now?: Date): Promise<number>;
     /**
      * Query hackathons with combined optional filters + pagination.
-     * Excludes ended hackathons and orders latest first (startsAt desc).
+     * Excludes ended hackathons and orders soonest first (startsAt asc).
      * Returns both data and total count for pagination metadata.
      */
     findFiltered(filters: {

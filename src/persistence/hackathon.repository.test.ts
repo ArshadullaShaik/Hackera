@@ -34,7 +34,7 @@ describe("HackathonRepository - Auto Cleanup & Filtering", () => {
     });
   });
 
-  it("findFiltered orders records by startsAt desc (latest first) and excludes ended hackathons", async () => {
+  it("findFiltered orders records by startsAt asc (soonest first) and excludes ended hackathons", async () => {
     const mockData = [
       { id: "1", title: "Future Hack 2", startsAt: new Date("2026-09-01") },
       { id: "2", title: "Future Hack 1", startsAt: new Date("2026-08-01") },
@@ -49,11 +49,48 @@ describe("HackathonRepository - Auto Cleanup & Filtering", () => {
 
     expect(mockPrisma.hackathon.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        orderBy: { startsAt: "desc" },
-        take: 10,
-        skip: 0,
+        orderBy: { startsAt: "asc" },
       })
     );
+  });
+
+  it("orders current hackathons by listed cash prize before upcoming hackathons", async () => {
+    const now = Date.now();
+    const mockData = [
+      {
+        id: "low-prize",
+        title: "Low prize current hackathon",
+        startsAt: new Date(now - 24 * 60 * 60 * 1000),
+        endsAt: new Date(now + 24 * 60 * 60 * 1000),
+        rawSourcePayload: { prize_amount: "$10,000" },
+        description: "",
+      },
+      {
+        id: "future",
+        title: "Future hackathon",
+        startsAt: new Date(now + 24 * 60 * 60 * 1000),
+        endsAt: new Date(now + 2 * 24 * 60 * 60 * 1000),
+        rawSourcePayload: { prize_amount: "$100,000" },
+        description: "",
+      },
+      {
+        id: "high-prize",
+        title: "High prize current hackathon",
+        startsAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+        endsAt: new Date(now + 24 * 60 * 60 * 1000),
+        rawSourcePayload: { prize_amount: "$50,000" },
+        description: "",
+      },
+    ];
+    mockPrisma.hackathon.findMany.mockResolvedValue(mockData);
+
+    const result = await repository.findFiltered({ page: 1, limit: 10 });
+
+    expect(result.data.map((hackathon: any) => hackathon.id)).toEqual([
+      "high-prize",
+      "low-prize",
+      "future",
+    ]);
   });
 
   it("removes stale records from a fully scraped source", async () => {
