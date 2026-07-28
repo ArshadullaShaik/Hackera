@@ -45,7 +45,10 @@ export default function Home() {
         if (platform) params.append("platform", platform);
 
         const res = await fetch(`/api/hackathons?${params.toString()}`);
-        if (!res.ok) throw new Error("Failed to fetch hackathons");
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          throw new Error(errJson.error?.message || "Failed to fetch hackathons");
+        }
 
         const json = await res.json();
         const data: HackathonItem[] = json.data || [];

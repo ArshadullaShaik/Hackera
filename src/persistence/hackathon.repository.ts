@@ -3,7 +3,7 @@ import { NormalizedHackathon } from "../core/schema";
 import { logger } from "../core/logger";
 
 export class HackathonRepository {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private prisma: PrismaClient) { }
 
   /**
    * Upsert a hackathon: update if (sourceId, sourcePlatform) already exists, else create new.
