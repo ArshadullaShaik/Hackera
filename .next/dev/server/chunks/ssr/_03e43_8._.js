@@ -795,9 +795,9 @@ function Home() {
                         // Extract Prize Pool ($ or ₹)
                         let prizeText = "🏆 Cash & Prizes";
                         const rawDesc = item.description || "";
-                        const matchPrize = rawDesc.match(/Prize Pool:\s*([^\s\]]+|\$[0-9,kKmM]+|₹[0-9,kKLlCc]+)/i);
-                        if (matchPrize) {
-                            prizeText = `🏆 ${matchPrize[1]}`;
+                        const matchPrize = rawDesc.match(/Prize Pool:\s*([^\]|]+)/i);
+                        if (matchPrize && matchPrize[1].trim()) {
+                            prizeText = `🏆 ${matchPrize[1].trim()}`;
                         } else if (item.rawSourcePayload?.prize_amount) {
                             prizeText = `🏆 ${item.rawSourcePayload.prize_amount.replace(/<[^>]*>?/gm, "")}`;
                         } else if (item.rawSourcePayload?.prize_money) {
