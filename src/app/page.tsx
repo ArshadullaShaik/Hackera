@@ -395,14 +395,51 @@ export default function Home() {
                   })
                   : "UPCOMING";
 
+              // Extract Prize Pool ($ or ₹)
               let prizeText = "🏆 Cash & Prizes";
-              if (item.rawSourcePayload?.prize_amount) {
+              const rawDesc = item.description || "";
+              const matchPrize = rawDesc.match(/Prize Pool:\s*([^\s\]]+|\$[0-9,kKmM]+|₹[0-9,kKLlCc]+)/i);
+              
+              if (matchPrize) {
+                prizeText = `🏆 ${matchPrize[1]}`;
+              } else if (item.rawSourcePayload?.prize_amount) {
                 prizeText = `🏆 ${item.rawSourcePayload.prize_amount.replace(/<[^>]*>?/gm, "")}`;
-              } else if (item.rawSourcePayload?.prizes?.length) {
-                const p = item.rawSourcePayload.prizes[0];
-                if (p.cash) prizeText = `🏆 ${p.cash} Pool`;
-                else if (p.others) prizeText = `🏆 ${p.others.slice(0, 20)}`;
+              } else if (item.rawSourcePayload?.prize_money) {
+                const val = String(item.rawSourcePayload.prize_money).replace(/<[^>]*>?/gm, "");
+                prizeText = `🏆 ${val.startsWith("$") || val.startsWith("₹") ? val : `₹${val}`}`;
+              } else {
+                const usdMatch = rawDesc.match(/(\$\s*\d[\d,]*\s*(?:k|m|million|thousand)?)/i);
+                const inrMatch = rawDesc.match(/(₹\s*\d[\d,]*\s*(?:lakh|l|k|crore)?|inr\s*\d[\d,]*|rs\.?\s*\d[\d,]*)/i);
+                if (usdMatch) {
+                  prizeText = `🏆 ${usdMatch[1].replace(/\s+/g, "")}`;
+                } else if (inrMatch) {
+                  prizeText = `🏆 ${inrMatch[1].replace(/inr\s*/i, "₹").replace(/rs\.?\s*/i, "₹").replace(/\s+/g, "")}`;
+                }
               }
+
+              // Extract or Detect Tracks
+              let trackBadges: string[] = [];
+              const matchTrack = rawDesc.match(/Tracks:\s*([^\]]+)/i);
+              if (matchTrack) {
+                trackBadges = matchTrack[1].split(",").map((t) => t.trim());
+              } else {
+                const combined = `${item.title} ${rawDesc}`.toLowerCase();
+                if (/\b(game|gaming|unity|unreal|roblox|arcade|gamedev)\b/i.test(combined)) trackBadges.push("Game Dev");
+                if (/\b(ai|ml|machine learning|artificial intelligence|llm|genai|gpt)\b/i.test(combined)) trackBadges.push("AI / ML");
+                if (/\b(web3|crypto|blockchain|ethereum|solana|defi)\b/i.test(combined)) trackBadges.push("Web3");
+                if (/\b(mobile|ios|android|flutter)\b/i.test(combined)) trackBadges.push("Mobile");
+              }
+
+              const trackIcons: Record<string, string> = {
+                "Game Dev": "🎮",
+                "AI / ML": "🤖",
+                "Web3 / Blockchain": "⛓️",
+                "Web3": "⛓️",
+                "Mobile": "📱",
+                "Cybersecurity": "🛡️",
+                "Fintech": "💳",
+                "Healthtech": "🩺",
+              };
 
               return (
                 <article key={item.id} className="card">
@@ -437,6 +474,11 @@ export default function Home() {
                       <span className="pill-tag pill-tag-date">
                         📅 {dateFormatted}
                       </span>
+                      {trackBadges.map((t) => (
+                        <span key={t} className="pill-tag" style={{ background: "#fef08a", color: "#000" }}>
+                          {trackIcons[t] || "🎯"} {t.toUpperCase()}
+                        </span>
+                      ))}
                     </div>
 
                     <h2 className="card-title">{item.title}</h2>

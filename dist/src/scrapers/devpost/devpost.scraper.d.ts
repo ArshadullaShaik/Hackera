@@ -5,5 +5,6 @@ export declare class DevpostScraper implements Scraper {
     private readonly maxPages;
     scrape(): Promise<NormalizedHackathon[]>;
     private normalize;
+    private parseSubmissionDates;
 }
 //# sourceMappingURL=devpost.scraper.d.ts.map

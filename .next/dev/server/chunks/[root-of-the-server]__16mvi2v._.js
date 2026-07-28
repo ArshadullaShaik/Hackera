@@ -252,44 +252,106 @@ class HackathonRepository {
         };
     }
     /**
+   * Automatically check whole database and delete hackathons that have ended.
+   * A hackathon is considered ended if:
+   * 1. endsAt is provided and endsAt < now
+   * 2. endsAt is null and startsAt < now
+   */ async deleteEndedHackathons(now = new Date()) {
+        const graceDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const result = await this.prisma.hackathon.deleteMany({
+            where: {
+                OR: [
+                    {
+                        endsAt: {
+                            lt: now
+                        }
+                    },
+                    {
+                        endsAt: null,
+                        startsAt: {
+                            lt: graceDate
+                        }
+                    }
+                ]
+            }
+        });
+        __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].info({
+            deletedCount: result.count
+        }, "Auto-cleaned ended hackathons from database");
+        return result.count;
+    }
+    /**
    * Query hackathons with combined optional filters + pagination.
+   * Excludes ended hackathons and orders latest first (startsAt desc).
    * Returns both data and total count for pagination metadata.
    */ async findFiltered(filters) {
-        const where = {};
+        const conditions = [];
         if (!filters.includeDuplicates) {
-            where.duplicateOfId = null;
+            conditions.push({
+                duplicateOfId: null
+            });
         }
         if (filters.search) {
-            where.OR = [
+            conditions.push({
+                OR: [
+                    {
+                        title: {
+                            contains: filters.search,
+                            mode: "insensitive"
+                        }
+                    },
+                    {
+                        description: {
+                            contains: filters.search,
+                            mode: "insensitive"
+                        }
+                    }
+                ]
+            });
+        }
+        if (filters.platform) {
+            conditions.push({
+                sourcePlatform: filters.platform
+            });
+        }
+        if (filters.locationType) {
+            conditions.push({
+                locationType: filters.locationType
+            });
+        }
+        if (filters.startsAfter || filters.startsBefore) {
+            const startsAtFilter = {};
+            if (filters.startsAfter) {
+                startsAtFilter.gte = filters.startsAfter;
+            }
+            if (filters.startsBefore) {
+                startsAtFilter.lte = filters.startsBefore;
+            }
+            conditions.push({
+                startsAt: startsAtFilter
+            });
+        }
+        // Automatically exclude ended hackathons (allowing 30-day window if endsAt is null)
+        const now = new Date();
+        const graceDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        conditions.push({
+            OR: [
                 {
-                    title: {
-                        contains: filters.search,
-                        mode: "insensitive"
+                    endsAt: {
+                        gte: now
                     }
                 },
                 {
-                    description: {
-                        contains: filters.search,
-                        mode: "insensitive"
+                    endsAt: null,
+                    startsAt: {
+                        gte: graceDate
                     }
                 }
-            ];
-        }
-        if (filters.platform) {
-            where.sourcePlatform = filters.platform;
-        }
-        if (filters.locationType) {
-            where.locationType = filters.locationType;
-        }
-        if (filters.startsAfter || filters.startsBefore) {
-            where.startsAt = {};
-            if (filters.startsAfter) {
-                where.startsAt.gte = filters.startsAfter;
-            }
-            if (filters.startsBefore) {
-                where.startsAt.lte = filters.startsBefore;
-            }
-        }
+            ]
+        });
+        const where = {
+            AND: conditions
+        };
         const offset = (filters.page - 1) * filters.limit;
         const [data, total] = await Promise.all([
             this.prisma.hackathon.findMany({
@@ -297,7 +359,7 @@ class HackathonRepository {
                 take: filters.limit,
                 skip: offset,
                 orderBy: {
-                    startsAt: "asc"
+                    startsAt: "desc"
                 }
             }),
             this.prisma.hackathon.count({
@@ -365,13 +427,13 @@ class HackathonRepository {
         });
     }
     /**
-   * Get all hackathons from database (paginated).
+   * Get all hackathons from database (paginated, latest first).
    */ async findAll(limit = 100, offset = 0) {
         return this.prisma.hackathon.findMany({
             take: limit,
             skip: offset,
             orderBy: {
-                startsAt: "asc"
+                startsAt: "desc"
             }
         });
     }
@@ -381,7 +443,7 @@ class HackathonRepository {
         return this.prisma.hackathon.count();
     }
     /**
-   * Get hackathons by platform.
+   * Get hackathons by platform (latest first).
    */ async findByPlatform(platform, limit = 100, offset = 0) {
         return this.prisma.hackathon.findMany({
             where: {
@@ -390,12 +452,12 @@ class HackathonRepository {
             take: limit,
             skip: offset,
             orderBy: {
-                startsAt: "asc"
+                startsAt: "desc"
             }
         });
     }
     /**
-   * Get hackathons by date range.
+   * Get hackathons by date range (latest first).
    */ async findByDateRange(startsAfter, startsBefore, limit = 100) {
         return this.prisma.hackathon.findMany({
             where: {
@@ -406,7 +468,7 @@ class HackathonRepository {
             },
             take: limit,
             orderBy: {
-                startsAt: "asc"
+                startsAt: "desc"
             }
         });
     }

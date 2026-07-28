@@ -2,6 +2,12 @@ import axios from "axios";
 import { Scraper } from "../../core/scraper.interface.js";
 import { NormalizedHackathon } from "../../core/schema.js";
 import { logger } from "../../core/logger.js";
+import {
+  determineLocationType,
+  detectTracks,
+  extractPrizePool,
+  formatDescription,
+} from "../../core/enrichment.js";
 
 export class HackClubScraper implements Scraper {
   private readonly targetUrl = "https://hackathons.hackclub.com/api/events/upcoming";
@@ -73,21 +79,31 @@ export class HackClubScraper implements Scraper {
       }
     }
 
-    let locationType: "in-person" | "online" | "hybrid" = "in-person";
-    if (raw.virtual || raw.online || raw.hybrid === false || raw.city?.toLowerCase().includes("online")) {
-      locationType = "online";
-    }
+    const locationName = [raw.city, raw.state, raw.country].filter(Boolean).join(", ") || undefined;
+    const locationType = determineLocationType({
+      isVirtual: Boolean(raw.virtual || raw.online),
+      isHybrid: Boolean(raw.hybrid === true),
+      locationName,
+      city: raw.city,
+      country: raw.country,
+    });
 
     let canonicalUrl = raw.website || raw.url || `https://hackathons.hackclub.com/`;
     if (!canonicalUrl.startsWith("http")) {
       canonicalUrl = `https://${canonicalUrl}`;
     }
 
-    const locationName = [raw.city, raw.state, raw.country].filter(Boolean).join(", ") || undefined;
+    const prizePool = extractPrizePool(raw, raw.description || title);
+    const tracks = detectTracks(title, raw.description || "", raw);
+    const description = formatDescription(
+      raw.description || `Hack Club event in ${locationName || "online"}`,
+      tracks,
+      prizePool
+    );
 
     return {
       title,
-      description: raw.description || `Hack Club event in ${locationName || "online"}`,
+      description,
       startsAt,
       endsAt,
       locationType,

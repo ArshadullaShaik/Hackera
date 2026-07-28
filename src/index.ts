@@ -62,15 +62,23 @@ async function main() {
     let totalCreated = 0;
     let totalUpdated = 0;
 
+    const now = new Date();
+
     for (const { platform, events } of allHackathons) {
       if (events.length === 0) continue;
 
+      const activeEvents = events.filter((h) => {
+        if (h.endsAt && new Date(h.endsAt) < now) return false;
+        if (!h.endsAt && new Date(h.startsAt) < now) return false;
+        return true;
+      });
+
       logger.info(
-        { platform, count: events.length },
-        `Persisting ${events.length} events from ${platform}`
+        { platform, count: activeEvents.length },
+        `Persisting ${activeEvents.length} active events from ${platform}`
       );
 
-      const result = await repository.upsertBatch(events);
+      const result = await repository.upsertBatch(activeEvents);
       totalCreated += result.created;
       totalUpdated += result.updated;
 
@@ -79,6 +87,9 @@ async function main() {
 
     const duplicatesFound = await repository.runCrossSourceDeduplication();
     console.log(`Cross-Source Duplicates Linked: ${duplicatesFound}`);
+
+    const deletedCount = await repository.deleteEndedHackathons(now);
+    console.log(`Ended Hackathons Auto-Cleaned: ${deletedCount}`);
 
     console.log("\n" + "-".repeat(80));
     console.log(`Total Created: ${totalCreated}`);

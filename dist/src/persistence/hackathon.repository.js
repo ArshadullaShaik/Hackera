@@ -1,4 +1,4 @@
-import { logger } from "../core/logger.js";
+import { logger } from "../core/logger";
 export class HackathonRepository {
     constructor(prisma) {
         this.prisma = prisma;
@@ -85,42 +85,73 @@ export class HackathonRepository {
         return { created, updated };
     }
     /**
+     * Automatically check whole database and delete hackathons that have ended.
+     * A hackathon is considered ended if:
+     * 1. endsAt is provided and endsAt < now
+     * 2. endsAt is null and startsAt < now
+     */
+    async deleteEndedHackathons(now = new Date()) {
+        const result = await this.prisma.hackathon.deleteMany({
+            where: {
+                OR: [
+                    { endsAt: { lt: now } },
+                    { endsAt: null, startsAt: { lt: now } },
+                ],
+            },
+        });
+        logger.info({ deletedCount: result.count }, "Auto-cleaned ended hackathons from database");
+        return result.count;
+    }
+    /**
      * Query hackathons with combined optional filters + pagination.
+     * Excludes ended hackathons and orders latest first (startsAt desc).
      * Returns both data and total count for pagination metadata.
      */
     async findFiltered(filters) {
-        const where = {};
+        const conditions = [];
         if (!filters.includeDuplicates) {
-            where.duplicateOfId = null;
+            conditions.push({ duplicateOfId: null });
         }
         if (filters.search) {
-            where.OR = [
-                { title: { contains: filters.search, mode: "insensitive" } },
-                { description: { contains: filters.search, mode: "insensitive" } },
-            ];
+            conditions.push({
+                OR: [
+                    { title: { contains: filters.search, mode: "insensitive" } },
+                    { description: { contains: filters.search, mode: "insensitive" } },
+                ],
+            });
         }
         if (filters.platform) {
-            where.sourcePlatform = filters.platform;
+            conditions.push({ sourcePlatform: filters.platform });
         }
         if (filters.locationType) {
-            where.locationType = filters.locationType;
+            conditions.push({ locationType: filters.locationType });
         }
         if (filters.startsAfter || filters.startsBefore) {
-            where.startsAt = {};
+            const startsAtFilter = {};
             if (filters.startsAfter) {
-                where.startsAt.gte = filters.startsAfter;
+                startsAtFilter.gte = filters.startsAfter;
             }
             if (filters.startsBefore) {
-                where.startsAt.lte = filters.startsBefore;
+                startsAtFilter.lte = filters.startsBefore;
             }
+            conditions.push({ startsAt: startsAtFilter });
         }
+        // Automatically exclude ended hackathons
+        const now = new Date();
+        conditions.push({
+            OR: [
+                { endsAt: { gte: now } },
+                { endsAt: null, startsAt: { gte: now } },
+            ],
+        });
+        const where = { AND: conditions };
         const offset = (filters.page - 1) * filters.limit;
         const [data, total] = await Promise.all([
             this.prisma.hackathon.findMany({
                 where,
                 take: filters.limit,
                 skip: offset,
-                orderBy: { startsAt: "asc" },
+                orderBy: { startsAt: "desc" },
             }),
             this.prisma.hackathon.count({ where }),
         ]);
@@ -131,7 +162,7 @@ export class HackathonRepository {
      * Identifies near-duplicate hackathons across platforms and links duplicate records.
      */
     async runCrossSourceDeduplication() {
-        const { DedupService } = await import("../dedup/dedup.service.js");
+        const { DedupService } = await import("../dedup/dedup.service");
         const dedupService = new DedupService();
         const allHackathons = await this.prisma.hackathon.findMany({
             select: {
@@ -175,13 +206,13 @@ export class HackathonRepository {
         });
     }
     /**
-     * Get all hackathons from database (paginated).
+     * Get all hackathons from database (paginated, latest first).
      */
     async findAll(limit = 100, offset = 0) {
         return this.prisma.hackathon.findMany({
             take: limit,
             skip: offset,
-            orderBy: { startsAt: "asc" },
+            orderBy: { startsAt: "desc" },
         });
     }
     /**
@@ -191,18 +222,18 @@ export class HackathonRepository {
         return this.prisma.hackathon.count();
     }
     /**
-     * Get hackathons by platform.
+     * Get hackathons by platform (latest first).
      */
     async findByPlatform(platform, limit = 100, offset = 0) {
         return this.prisma.hackathon.findMany({
             where: { sourcePlatform: platform },
             take: limit,
             skip: offset,
-            orderBy: { startsAt: "asc" },
+            orderBy: { startsAt: "desc" },
         });
     }
     /**
-     * Get hackathons by date range.
+     * Get hackathons by date range (latest first).
      */
     async findByDateRange(startsAfter, startsBefore, limit = 100) {
         return this.prisma.hackathon.findMany({
@@ -213,7 +244,7 @@ export class HackathonRepository {
                 },
             },
             take: limit,
-            orderBy: { startsAt: "asc" },
+            orderBy: { startsAt: "desc" },
         });
     }
     /**

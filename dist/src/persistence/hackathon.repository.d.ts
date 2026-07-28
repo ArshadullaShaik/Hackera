@@ -1,5 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client";
-import { NormalizedHackathon } from "../core/schema.js";
+import { NormalizedHackathon } from "../core/schema";
 export declare class HackathonRepository {
     private prisma;
     constructor(prisma: PrismaClient);
@@ -19,7 +19,15 @@ export declare class HackathonRepository {
         updated: number;
     }>;
     /**
+     * Automatically check whole database and delete hackathons that have ended.
+     * A hackathon is considered ended if:
+     * 1. endsAt is provided and endsAt < now
+     * 2. endsAt is null and startsAt < now
+     */
+    deleteEndedHackathons(now?: Date): Promise<number>;
+    /**
      * Query hackathons with combined optional filters + pagination.
+     * Excludes ended hackathons and orders latest first (startsAt desc).
      * Returns both data and total count for pagination metadata.
      */
     findFiltered(filters: {
@@ -44,42 +52,42 @@ export declare class HackathonRepository {
      * Find a single hackathon by internal UUID.
      */
     findById(id: string): Promise<{
+        locationType: string;
+        id: string;
+        sourceId: string;
+        sourcePlatform: string;
         title: string;
         description: string;
         startsAt: Date;
         endsAt: Date | null;
-        locationType: string;
         locationName: string | null;
         latitude: number | null;
         longitude: number | null;
-        sourceId: string;
-        sourcePlatform: string;
         canonicalUrl: string;
         imageUrl: string | null;
         rawSourcePayload: Prisma.JsonValue;
-        id: string;
         createdAt: Date;
         updatedAt: Date;
         duplicateOfId: string | null;
     } | null>;
     /**
-     * Get all hackathons from database (paginated).
+     * Get all hackathons from database (paginated, latest first).
      */
     findAll(limit?: number, offset?: number): Promise<{
+        locationType: string;
+        id: string;
+        sourceId: string;
+        sourcePlatform: string;
         title: string;
         description: string;
         startsAt: Date;
         endsAt: Date | null;
-        locationType: string;
         locationName: string | null;
         latitude: number | null;
         longitude: number | null;
-        sourceId: string;
-        sourcePlatform: string;
         canonicalUrl: string;
         imageUrl: string | null;
         rawSourcePayload: Prisma.JsonValue;
-        id: string;
         createdAt: Date;
         updatedAt: Date;
         duplicateOfId: string | null;
@@ -89,45 +97,45 @@ export declare class HackathonRepository {
      */
     count(): Promise<number>;
     /**
-     * Get hackathons by platform.
+     * Get hackathons by platform (latest first).
      */
     findByPlatform(platform: string, limit?: number, offset?: number): Promise<{
+        locationType: string;
+        id: string;
+        sourceId: string;
+        sourcePlatform: string;
         title: string;
         description: string;
         startsAt: Date;
         endsAt: Date | null;
-        locationType: string;
         locationName: string | null;
         latitude: number | null;
         longitude: number | null;
-        sourceId: string;
-        sourcePlatform: string;
         canonicalUrl: string;
         imageUrl: string | null;
         rawSourcePayload: Prisma.JsonValue;
-        id: string;
         createdAt: Date;
         updatedAt: Date;
         duplicateOfId: string | null;
     }[]>;
     /**
-     * Get hackathons by date range.
+     * Get hackathons by date range (latest first).
      */
     findByDateRange(startsAfter: Date, startsBefore: Date, limit?: number): Promise<{
+        locationType: string;
+        id: string;
+        sourceId: string;
+        sourcePlatform: string;
         title: string;
         description: string;
         startsAt: Date;
         endsAt: Date | null;
-        locationType: string;
         locationName: string | null;
         latitude: number | null;
         longitude: number | null;
-        sourceId: string;
-        sourcePlatform: string;
         canonicalUrl: string;
         imageUrl: string | null;
         rawSourcePayload: Prisma.JsonValue;
-        id: string;
         createdAt: Date;
         updatedAt: Date;
         duplicateOfId: string | null;

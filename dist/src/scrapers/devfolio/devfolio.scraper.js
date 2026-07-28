@@ -3,6 +3,7 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 import { NormalizedHackathonSchema, } from "../../core/schema.js";
 import { logger } from "../../core/logger.js";
+import { determineLocationType, detectTracks, extractPrizePool, formatDescription, } from "../../core/enrichment.js";
 /**
  * Raw Devfolio hackathon schema
  * Extracted from embedded JSON in devfolio.co/hackathons HTML
@@ -170,24 +171,25 @@ export class DevfolioScraper {
         }
     }
     mapToNormalized(raw, rawPayload) {
-        // Determine location type
-        const locationType = raw.is_online
-            ? "online"
-            : "in-person";
-        // Build canonical URL from slug
+        const locationType = determineLocationType({
+            isOnline: raw.is_online,
+        });
         const canonicalUrl = `https://devfolio.co/${raw.slug}`;
-        // Validate and return
+        const themesStr = raw.themes?.map((t) => t.theme?.name).filter(Boolean).join(", ");
+        const prizePool = extractPrizePool(raw, raw.name);
+        const tracks = detectTracks(raw.name, themesStr || "", raw);
+        const description = formatDescription(themesStr ? `Devfolio Hackathon featuring ${themesStr}` : "Devfolio Hackathon", tracks, prizePool);
         return NormalizedHackathonSchema.parse({
             title: raw.name,
-            description: "", // Devfolio doesn't provide description in embedded data
+            description,
             startsAt: raw.starts_at,
             endsAt: raw.ends_at || undefined,
             locationType,
-            locationName: undefined, // Devfolio doesn't provide location in embedded data
+            locationName: undefined,
             sourceId: raw.uuid,
             sourcePlatform: "devfolio",
             canonicalUrl,
-            imageUrl: undefined, // Would need to fetch individual hackathon page for image
+            imageUrl: undefined,
             rawSourcePayload: rawPayload,
         });
     }

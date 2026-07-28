@@ -38,10 +38,22 @@ async function processJob(job: Job): Promise<{ created: number; updated: number 
   const startedAt = new Date();
   try {
     const hackathons = await scraper.scrape();
-    const result = await repository.upsertBatch(hackathons);
+
+    // Filter out ended hackathons before persisting
+    const now = new Date();
+    const activeHackathons = hackathons.filter((h) => {
+      if (h.endsAt && new Date(h.endsAt) < now) return false;
+      if (!h.endsAt && new Date(h.startsAt) < now) return false;
+      return true;
+    });
+
+    const result = await repository.upsertBatch(activeHackathons);
 
     // Run cross-source deduplication pass
     await repository.runCrossSourceDeduplication();
+
+    // Auto-clean any ended hackathons from database
+    await repository.deleteEndedHackathons(now);
 
     // Log the scrape run
     await repository.logScrapeRun({

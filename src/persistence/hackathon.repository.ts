@@ -104,7 +104,28 @@ export class HackathonRepository {
   }
 
   /**
+   * Automatically check whole database and delete hackathons that have ended.
+   * A hackathon is considered ended if:
+   * 1. endsAt is provided and endsAt < now
+   * 2. endsAt is null and startsAt < now
+   */
+  async deleteEndedHackathons(now: Date = new Date()): Promise<number> {
+    const graceDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const result = await this.prisma.hackathon.deleteMany({
+      where: {
+        OR: [
+          { endsAt: { lt: now } },
+          { endsAt: null, startsAt: { lt: graceDate } },
+        ],
+      },
+    });
+    logger.info({ deletedCount: result.count }, "Auto-cleaned ended hackathons from database");
+    return result.count;
+  }
+
+  /**
    * Query hackathons with combined optional filters + pagination.
+   * Excludes ended hackathons and orders latest first (startsAt desc).
    * Returns both data and total count for pagination metadata.
    */
   async findFiltered(filters: {
@@ -117,37 +138,51 @@ export class HackathonRepository {
     page: number;
     limit: number;
   }): Promise<{ data: any[]; total: number }> {
-    const where: Prisma.HackathonWhereInput = {};
+    const conditions: Prisma.HackathonWhereInput[] = [];
 
     if (!filters.includeDuplicates) {
-      where.duplicateOfId = null;
+      conditions.push({ duplicateOfId: null });
     }
 
     if (filters.search) {
-      where.OR = [
-        { title: { contains: filters.search, mode: "insensitive" } },
-        { description: { contains: filters.search, mode: "insensitive" } },
-      ];
+      conditions.push({
+        OR: [
+          { title: { contains: filters.search, mode: "insensitive" } },
+          { description: { contains: filters.search, mode: "insensitive" } },
+        ],
+      });
     }
 
     if (filters.platform) {
-      where.sourcePlatform = filters.platform;
+      conditions.push({ sourcePlatform: filters.platform });
     }
 
     if (filters.locationType) {
-      where.locationType = filters.locationType;
+      conditions.push({ locationType: filters.locationType });
     }
 
     if (filters.startsAfter || filters.startsBefore) {
-      where.startsAt = {};
+      const startsAtFilter: Prisma.DateTimeFilter = {};
       if (filters.startsAfter) {
-        where.startsAt.gte = filters.startsAfter;
+        startsAtFilter.gte = filters.startsAfter;
       }
       if (filters.startsBefore) {
-        where.startsAt.lte = filters.startsBefore;
+        startsAtFilter.lte = filters.startsBefore;
       }
+      conditions.push({ startsAt: startsAtFilter });
     }
 
+    // Automatically exclude ended hackathons (allowing 30-day window if endsAt is null)
+    const now = new Date();
+    const graceDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    conditions.push({
+      OR: [
+        { endsAt: { gte: now } },
+        { endsAt: null, startsAt: { gte: graceDate } },
+      ],
+    });
+
+    const where: Prisma.HackathonWhereInput = { AND: conditions };
     const offset = (filters.page - 1) * filters.limit;
 
     const [data, total] = await Promise.all([
@@ -155,7 +190,7 @@ export class HackathonRepository {
         where,
         take: filters.limit,
         skip: offset,
-        orderBy: { startsAt: "asc" },
+        orderBy: { startsAt: "desc" },
       }),
       this.prisma.hackathon.count({ where }),
     ]);
@@ -219,13 +254,13 @@ export class HackathonRepository {
   }
 
   /**
-   * Get all hackathons from database (paginated).
+   * Get all hackathons from database (paginated, latest first).
    */
   async findAll(limit: number = 100, offset: number = 0) {
     return this.prisma.hackathon.findMany({
       take: limit,
       skip: offset,
-      orderBy: { startsAt: "asc" },
+      orderBy: { startsAt: "desc" },
     });
   }
 
@@ -237,19 +272,19 @@ export class HackathonRepository {
   }
 
   /**
-   * Get hackathons by platform.
+   * Get hackathons by platform (latest first).
    */
   async findByPlatform(platform: string, limit: number = 100, offset: number = 0) {
     return this.prisma.hackathon.findMany({
       where: { sourcePlatform: platform },
       take: limit,
       skip: offset,
-      orderBy: { startsAt: "asc" },
+      orderBy: { startsAt: "desc" },
     });
   }
 
   /**
-   * Get hackathons by date range.
+   * Get hackathons by date range (latest first).
    */
   async findByDateRange(startsAfter: Date, startsBefore: Date, limit: number = 100) {
     return this.prisma.hackathon.findMany({
@@ -260,7 +295,7 @@ export class HackathonRepository {
         },
       },
       take: limit,
-      orderBy: { startsAt: "asc" },
+      orderBy: { startsAt: "desc" },
     });
   }
 

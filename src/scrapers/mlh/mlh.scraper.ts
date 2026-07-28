@@ -3,6 +3,12 @@ import * as cheerio from "cheerio";
 import { Scraper } from "../../core/scraper.interface.js";
 import { NormalizedHackathon } from "../../core/schema.js";
 import { logger } from "../../core/logger.js";
+import {
+  determineLocationType,
+  detectTracks,
+  extractPrizePool,
+  formatDescription,
+} from "../../core/enrichment.js";
 
 export class MLHScraper implements Scraper {
   private readonly targetUrl = "https://mlh.io/seasons/2026/events";
@@ -79,19 +85,24 @@ export class MLHScraper implements Scraper {
       return null; // Skip events prior to 2025
     }
 
-    let locationType: "in-person" | "online" | "hybrid" = "in-person";
-    if (raw.formatType === "digital" || raw.location?.toLowerCase().includes("worldwide") || raw.location?.toLowerCase().includes("online")) {
-      locationType = "online";
-    }
+    const locationType = determineLocationType({
+      formatType: raw.formatType,
+      locationName: raw.location,
+    });
 
     let canonicalUrl = raw.websiteUrl || (raw.url ? `https://mlh.io${raw.url}` : `https://mlh.io/events/${raw.slug}`);
     if (!canonicalUrl.startsWith("http")) {
       canonicalUrl = `https://mlh.io${canonicalUrl}`;
     }
 
+    const rawDesc = raw.location ? `MLH Season Event in ${raw.location}` : "MLH Season Hackathon";
+    const prizePool = extractPrizePool(raw, raw.name);
+    const tracks = detectTracks(raw.name, rawDesc, raw);
+    const description = formatDescription(rawDesc, tracks, prizePool);
+
     return {
       title: raw.name,
-      description: raw.location ? `MLH Season Event in ${raw.location}` : "MLH Season Hackathon",
+      description,
       startsAt: new Date(raw.startsAt).toISOString(),
       endsAt: raw.endsAt ? new Date(raw.endsAt).toISOString() : undefined,
       locationType,

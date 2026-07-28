@@ -4,20 +4,35 @@ import { z } from "zod";
  * Coerces string query params to proper types.
  */
 export const HackathonQuerySchema = z.object({
-    search: z.string().optional(),
-    platform: z.enum(["luma", "devfolio", "devpost", "other"]).optional(),
-    locationType: z.enum(["in-person", "online", "hybrid"]).optional(),
+    search: z
+        .preprocess((val) => (val === "" ? undefined : val), z.string().optional()),
+    platform: z
+        .preprocess((val) => (val === "" ? undefined : val), z
+        .enum([
+        "luma",
+        "devfolio",
+        "devpost",
+        "mlh",
+        "unstop",
+        "hackerearth",
+        "hackclub",
+        "other",
+    ])
+        .optional()),
+    locationType: z
+        .preprocess((val) => (val === "" ? undefined : val), z.enum(["in-person", "online", "hybrid"]).optional()),
     startsAfter: z
+        .preprocess((val) => (val === "" ? undefined : val), z
         .string()
         .refine((s) => !isNaN(Date.parse(s)), { message: "startsAfter must be a valid date (ISO 8601)" })
-        .optional(),
+        .optional()),
     startsBefore: z
+        .preprocess((val) => (val === "" ? undefined : val), z
         .string()
         .refine((s) => !isNaN(Date.parse(s)), { message: "startsBefore must be a valid date (ISO 8601)" })
-        .optional(),
+        .optional()),
     includeDuplicates: z
-        .preprocess((val) => val === "true" || val === "1", z.boolean())
-        .optional(),
+        .preprocess((val) => (val === "" ? undefined : val === "true" || val === "1"), z.boolean().optional()),
     page: z.coerce
         .number()
         .int()

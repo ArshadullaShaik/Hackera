@@ -2,6 +2,7 @@ import { z } from "zod";
 import axios from "axios";
 import { NormalizedHackathonSchema, } from "../../core/schema.js";
 import { logger } from "../../core/logger.js";
+import { determineLocationType, detectTracks, extractPrizePool, formatDescription, } from "../../core/enrichment.js";
 /**
  * Raw Luma API event schema
  * These field names and shapes come directly from the Luma API response.
@@ -106,40 +107,35 @@ export class LumaScraper {
         }
     }
     mapToNormalized(raw, rawPayload) {
-        // Determine location type
-        let locationType;
-        if (raw.location_type === "hybrid") {
-            locationType = "hybrid";
-        }
-        else if (raw.location_type === "virtual") {
-            locationType = "online";
-        }
-        else {
-            locationType = "in-person";
-        }
-        // Build location name from address if available
         const address = raw.geo_address_info;
         let locationName;
         if (address) {
             locationName = address.full_address || address.address ||
                 (address.city ? `${address.city}, ${address.country}` : undefined);
         }
-        // Start/end times are already ISO strings
+        const locationType = determineLocationType({
+            isVirtual: raw.location_type === "virtual",
+            isHybrid: raw.location_type === "hybrid",
+            locationName,
+            city: address?.city || undefined,
+            country: address?.country || undefined,
+        });
         const startsAt = raw.start_at;
         const endsAt = raw.end_at || undefined;
-        // Construct full canonical URL from slug
         const canonicalUrl = `https://lu.ma/${raw.url}`;
-        // Extract coordinates if available
         let latitude;
         let longitude;
         if (raw.coordinate) {
             latitude = raw.coordinate.latitude;
             longitude = raw.coordinate.longitude;
         }
-        // Validate and return
+        const rawDesc = raw.description || `Luma Hackathon Event`;
+        const prizePool = extractPrizePool(raw, raw.name);
+        const tracks = detectTracks(raw.name, rawDesc, raw);
+        const description = formatDescription(rawDesc, tracks, prizePool);
         return NormalizedHackathonSchema.parse({
             title: raw.name,
-            description: "", // Luma doesn't seem to provide description in this response
+            description,
             startsAt,
             endsAt,
             locationType,

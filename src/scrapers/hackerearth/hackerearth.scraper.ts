@@ -2,6 +2,12 @@ import axios from "axios";
 import { Scraper } from "../../core/scraper.interface.js";
 import { NormalizedHackathon } from "../../core/schema.js";
 import { logger } from "../../core/logger.js";
+import {
+  determineLocationType,
+  detectTracks,
+  extractPrizePool,
+  formatDescription,
+} from "../../core/enrichment.js";
 
 export class HackerEarthScraper implements Scraper {
   private readonly targetUrl = "https://www.hackerearth.com/chrome-extension/events/";
@@ -72,13 +78,23 @@ export class HackerEarthScraper implements Scraper {
     }
 
     const imageUrl = raw.cover_image || raw.thumbnail || undefined;
+    const locationType = determineLocationType({
+      locationName: raw.location,
+      isOnline: !raw.location,
+    });
+
+    const rawDesc = raw.description || "HackerEarth Challenge/Hackathon";
+    const prizePool = extractPrizePool(raw, raw.title);
+    const tracks = detectTracks(raw.title, rawDesc, raw);
+    const description = formatDescription(rawDesc, tracks, prizePool);
 
     return {
       title: raw.title,
-      description: raw.description || "HackerEarth Challenge/Hackathon",
+      description,
       startsAt,
       endsAt,
-      locationType: "online", // HackerEarth events are predominantly online coding challenges
+      locationType,
+      locationName: raw.location || undefined,
       sourceId: String(sourceId),
       sourcePlatform: "hackerearth",
       canonicalUrl: raw.url,

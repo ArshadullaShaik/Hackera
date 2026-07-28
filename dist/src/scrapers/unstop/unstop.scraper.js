@@ -1,5 +1,6 @@
 import axios from "axios";
 import { logger } from "../../core/logger.js";
+import { determineLocationType, detectTracks, extractPrizePool, formatDescription, } from "../../core/enrichment.js";
 export class UnstopScraper {
     constructor() {
         this.baseUrl = "https://unstop.com/api/public/opportunity/search-new";
@@ -58,23 +59,29 @@ export class UnstopScraper {
         if (!raw.title || !raw.id || !raw.start_date) {
             return null;
         }
-        let locationType = "in-person";
-        if (raw.region === "online" || !raw.address_with_country_logo?.city) {
-            locationType = "online";
-        }
         const city = raw.address_with_country_logo?.city;
         const state = raw.address_with_country_logo?.state;
         const country = raw.address_with_country_logo?.country?.name;
         const locationParts = [city, state, country].filter(Boolean);
         const locationName = locationParts.length > 0 ? locationParts.join(", ") : undefined;
+        const locationType = determineLocationType({
+            region: raw.region,
+            locationName,
+            city,
+            country,
+        });
         let canonicalUrl = raw.seo_url || (raw.public_url ? `https://unstop.com/${raw.public_url}` : `https://unstop.com/hackathons/${raw.short_id}`);
         if (!canonicalUrl.startsWith("http")) {
             canonicalUrl = `https://unstop.com/${canonicalUrl.replace(/^\//, "")}`;
         }
         const imageUrl = raw.banner_mobile?.image_url || raw.logoUrl2 || undefined;
+        const rawDesc = raw.seo_details?.[0]?.description || raw.details?.replace(/<[^>]*>?/gm, "").slice(0, 300) || "Hackathon hosted on Unstop";
+        const prizePool = extractPrizePool(raw, rawDesc || raw.title);
+        const tracks = detectTracks(raw.title, rawDesc, raw);
+        const description = formatDescription(rawDesc, tracks, prizePool);
         return {
             title: raw.title,
-            description: raw.seo_details?.[0]?.description || raw.details?.replace(/<[^>]*>?/gm, "").slice(0, 300) || "Hackathon hosted on Unstop",
+            description,
             startsAt: new Date(raw.start_date).toISOString(),
             endsAt: raw.end_date ? new Date(raw.end_date).toISOString() : undefined,
             locationType,

@@ -4,31 +4,31 @@ import { z } from "zod";
  * Coerces string query params to proper types.
  */
 export declare const HackathonQuerySchema: z.ZodObject<{
-    search: z.ZodOptional<z.ZodString>;
-    platform: z.ZodOptional<z.ZodEnum<["luma", "devfolio", "devpost", "other"]>>;
-    locationType: z.ZodOptional<z.ZodEnum<["in-person", "online", "hybrid"]>>;
-    startsAfter: z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>;
-    startsBefore: z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>;
-    includeDuplicates: z.ZodOptional<z.ZodEffects<z.ZodBoolean, boolean, unknown>>;
+    search: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    platform: z.ZodEffects<z.ZodOptional<z.ZodEnum<["luma", "devfolio", "devpost", "mlh", "unstop", "hackerearth", "hackclub", "other"]>>, "luma" | "devfolio" | "devpost" | "mlh" | "unstop" | "hackerearth" | "hackclub" | "other" | undefined, unknown>;
+    locationType: z.ZodEffects<z.ZodOptional<z.ZodEnum<["in-person", "online", "hybrid"]>>, "in-person" | "online" | "hybrid" | undefined, unknown>;
+    startsAfter: z.ZodEffects<z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>, string | undefined, unknown>;
+    startsBefore: z.ZodEffects<z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>, string | undefined, unknown>;
+    includeDuplicates: z.ZodEffects<z.ZodOptional<z.ZodBoolean>, boolean | undefined, unknown>;
     page: z.ZodDefault<z.ZodNumber>;
     limit: z.ZodDefault<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     page: number;
     limit: number;
-    locationType?: "in-person" | "online" | "hybrid" | undefined;
     search?: string | undefined;
-    platform?: "luma" | "devfolio" | "devpost" | "other" | undefined;
+    platform?: "luma" | "devfolio" | "devpost" | "mlh" | "unstop" | "hackerearth" | "hackclub" | "other" | undefined;
+    locationType?: "in-person" | "online" | "hybrid" | undefined;
     startsAfter?: string | undefined;
     startsBefore?: string | undefined;
     includeDuplicates?: boolean | undefined;
 }, {
-    locationType?: "in-person" | "online" | "hybrid" | undefined;
-    page?: number | undefined;
-    search?: string | undefined;
-    platform?: "luma" | "devfolio" | "devpost" | "other" | undefined;
-    startsAfter?: string | undefined;
-    startsBefore?: string | undefined;
+    search?: unknown;
+    platform?: unknown;
+    locationType?: unknown;
+    startsAfter?: unknown;
+    startsBefore?: unknown;
     includeDuplicates?: unknown;
+    page?: number | undefined;
     limit?: number | undefined;
 }>;
 export type HackathonQuery = z.infer<typeof HackathonQuerySchema>;
