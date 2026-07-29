@@ -13,7 +13,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "GLOBAL HACK // The Hackathon Index",
+  title: "HACKERA // The Hackathon Index",
   description:
     "We scrape the web to find the best hackathons, so you don't have to. Every event, every prize, one dashboard.",
 };
@@ -29,7 +29,7 @@ export default function RootLayout({
         <header className="navbar">
           <div className="nav-container">
             <a href="#" className="brand-logo">
-              GLOBAL HACK
+              HACKERA
             </a>
 
             <nav className="nav-links">
@@ -62,7 +62,7 @@ export default function RootLayout({
         <footer className="footer">
           <div className="footer-container">
             <div className="footer-brand">
-              <span className="footer-logo">GLOBAL HACK</span>
+              <span className="footer-logo">HACKERA</span>
             </div>
 
             <nav className="footer-nav">
@@ -73,7 +73,7 @@ export default function RootLayout({
             </nav>
 
             <div className="footer-copyright">
-              © 2026 GLOBAL HACKATHON. ALL RIGHTS RESERVED.
+              © 2026 HACKERA. ALL RIGHTS RESERVED.
             </div>
           </div>
         </footer>
