@@ -4,6 +4,11 @@ export declare class HackathonRepository {
     private prisma;
     constructor(prisma: PrismaClient);
     /**
+     * Retry an operation once if the connection was dropped.
+     * Recreates the Prisma client on the retry attempt.
+     */
+    private withRetry;
+    /**
      * Upsert a hackathon: update if (sourceId, sourcePlatform) already exists, else create new.
      * Uses Prisma's native upsert — atomic, no race condition.
      */
@@ -54,6 +59,7 @@ export declare class HackathonRepository {
      * Find a single hackathon by internal UUID.
      */
     findById(id: string): Promise<{
+        locationType: string;
         id: string;
         sourceId: string;
         sourcePlatform: string;
@@ -61,7 +67,6 @@ export declare class HackathonRepository {
         description: string;
         startsAt: Date;
         endsAt: Date | null;
-        locationType: string;
         locationName: string | null;
         latitude: number | null;
         longitude: number | null;
@@ -76,6 +81,7 @@ export declare class HackathonRepository {
      * Get all hackathons from database (paginated, latest first).
      */
     findAll(limit?: number, offset?: number): Promise<{
+        locationType: string;
         id: string;
         sourceId: string;
         sourcePlatform: string;
@@ -83,7 +89,6 @@ export declare class HackathonRepository {
         description: string;
         startsAt: Date;
         endsAt: Date | null;
-        locationType: string;
         locationName: string | null;
         latitude: number | null;
         longitude: number | null;
@@ -102,6 +107,7 @@ export declare class HackathonRepository {
      * Get hackathons by platform (latest first).
      */
     findByPlatform(platform: string, limit?: number, offset?: number): Promise<{
+        locationType: string;
         id: string;
         sourceId: string;
         sourcePlatform: string;
@@ -109,7 +115,6 @@ export declare class HackathonRepository {
         description: string;
         startsAt: Date;
         endsAt: Date | null;
-        locationType: string;
         locationName: string | null;
         latitude: number | null;
         longitude: number | null;
@@ -124,6 +129,7 @@ export declare class HackathonRepository {
      * Get hackathons by date range (latest first).
      */
     findByDateRange(startsAfter: Date, startsBefore: Date, limit?: number): Promise<{
+        locationType: string;
         id: string;
         sourceId: string;
         sourcePlatform: string;
@@ -131,7 +137,6 @@ export declare class HackathonRepository {
         description: string;
         startsAt: Date;
         endsAt: Date | null;
-        locationType: string;
         locationName: string | null;
         latitude: number | null;
         longitude: number | null;

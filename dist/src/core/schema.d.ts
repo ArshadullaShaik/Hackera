@@ -19,12 +19,12 @@ export declare const NormalizedHackathonSchema: z.ZodObject<{
     imageUrl: z.ZodOptional<z.ZodString>;
     rawSourcePayload: z.ZodRecord<z.ZodString, z.ZodUnknown>;
 }, "strip", z.ZodTypeAny, {
-    title: string;
-    description: string;
-    startsAt: string;
     locationType: "in-person" | "online" | "hybrid";
     sourceId: string;
     sourcePlatform: "luma" | "devfolio" | "devpost" | "mlh" | "unstop" | "hackerearth" | "hackclub" | "other";
+    title: string;
+    description: string;
+    startsAt: string;
     canonicalUrl: string;
     rawSourcePayload: Record<string, unknown>;
     endsAt?: string | undefined;
@@ -33,11 +33,11 @@ export declare const NormalizedHackathonSchema: z.ZodObject<{
     longitude?: number | undefined;
     imageUrl?: string | undefined;
 }, {
-    title: string;
-    startsAt: string;
     locationType: "in-person" | "online" | "hybrid";
     sourceId: string;
     sourcePlatform: "luma" | "devfolio" | "devpost" | "mlh" | "unstop" | "hackerearth" | "hackclub" | "other";
+    title: string;
+    startsAt: string;
     canonicalUrl: string;
     rawSourcePayload: Record<string, unknown>;
     description?: string | undefined;

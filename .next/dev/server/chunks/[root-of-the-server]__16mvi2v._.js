@@ -95,7 +95,9 @@ __turbopack_context__.s([
     "disconnectPrisma",
     ()=>disconnectPrisma,
     "getPrismaClient",
-    ()=>getPrismaClient
+    ()=>getPrismaClient,
+    "recreatePrismaClient",
+    ()=>recreatePrismaClient
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$dotenv$2f$lib$2f$main$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/dotenv/lib/main.js [app-route] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$externals$5d2f40$prisma$2f$client__$5b$external$5d$__$2840$prisma$2f$client$2c$__cjs$2c$__$5b$project$5d2f$node_modules$2f40$prisma$2f$client$29$__ = __turbopack_context__.i("[externals]/@prisma/client [external] (@prisma/client, cjs, [project]/node_modules/@prisma/client)");
@@ -114,11 +116,30 @@ __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$dotenv$2f$lib$2f
 ;
 ;
 let prisma;
+let pool = null;
+function createPool() {
+    const p = new __TURBOPACK__imported__module__$5b$externals$5d2f$pg__$5b$external$5d$__$28$pg$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$pg$29$__["default"].Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+            rejectUnauthorized: false
+        },
+        max: 5,
+        idleTimeoutMillis: 0,
+        connectionTimeoutMillis: 10_000,
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 10_000
+    });
+    // Log and evict dead connections instead of crashing
+    p.on("error", (err)=>{
+        __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].warn({
+            error: err.message
+        }, "Pool background connection error (evicted)");
+    });
+    return p;
+}
 function getPrismaClient() {
     if (!prisma) {
-        const pool = new __TURBOPACK__imported__module__$5b$externals$5d2f$pg__$5b$external$5d$__$28$pg$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$pg$29$__["default"].Pool({
-            connectionString: process.env.DATABASE_URL
-        });
+        pool = createPool();
         const adapter = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$prisma$2f$adapter$2d$pg$2f$dist$2f$index$2e$mjs__$5b$app$2d$route$5d$__$28$ecmascript$29$__["PrismaPg"](pool);
         prisma = new __TURBOPACK__imported__module__$5b$externals$5d2f40$prisma$2f$client__$5b$external$5d$__$2840$prisma$2f$client$2c$__cjs$2c$__$5b$project$5d2f$node_modules$2f40$prisma$2f$client$29$__["PrismaClient"]({
             adapter,
@@ -137,9 +158,17 @@ function getPrismaClient() {
     }
     return prisma;
 }
+async function recreatePrismaClient() {
+    __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].info("Recreating Prisma client after connection loss...");
+    await disconnectPrisma();
+    return getPrismaClient();
+}
 async function disconnectPrisma() {
     if (prisma) {
         await prisma.$disconnect();
+        // @ts-ignore — reset so getPrismaClient creates a fresh one
+        prisma = undefined;
+        pool = null;
         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].info("Prisma client disconnected");
     }
 }
@@ -148,11 +177,19 @@ __turbopack_async_result__();
 "[project]/src/persistence/hackathon.repository.ts [app-route] (ecmascript)", ((__turbopack_context__) => {
 "use strict";
 
+return __turbopack_context__.a(async (__turbopack_handle_async_dependencies__, __turbopack_async_result__) => { try {
+
 __turbopack_context__.s([
     "HackathonRepository",
     ()=>HackathonRepository
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/core/logger.ts [app-route] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$persistence$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/persistence/db.ts [app-route] (ecmascript)");
+var __turbopack_async_dependencies__ = __turbopack_handle_async_dependencies__([
+    __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$persistence$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__
+]);
+[__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$persistence$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__] = __turbopack_async_dependencies__.then ? (await __turbopack_async_dependencies__)() : __turbopack_async_dependencies__;
+;
 ;
 class HackathonRepository {
     prisma;
@@ -160,70 +197,88 @@ class HackathonRepository {
         this.prisma = prisma;
     }
     /**
+   * Retry an operation once if the connection was dropped.
+   * Recreates the Prisma client on the retry attempt.
+   */ async withRetry(operation) {
+        try {
+            return await operation();
+        } catch (error) {
+            const message = error?.message || String(error);
+            if (message.includes("Server has closed the connection") || message.includes("Connection terminated")) {
+                __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].warn("Connection lost — recreating client and retrying...");
+                this.prisma = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$persistence$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["recreatePrismaClient"])();
+                return await operation();
+            }
+            throw error;
+        }
+    }
+    /**
    * Upsert a hackathon: update if (sourceId, sourcePlatform) already exists, else create new.
    * Uses Prisma's native upsert — atomic, no race condition.
    */ async upsert(hackathon) {
-        try {
-            // Check if record exists to determine created vs updated
-            const existing = await this.prisma.hackathon.findUnique({
-                where: {
-                    sourceId_sourcePlatform: {
-                        sourceId: hackathon.sourceId,
-                        sourcePlatform: hackathon.sourcePlatform
+        return this.withRetry(async ()=>{
+            try {
+                // Check if record exists to determine created vs updated
+                const existing = await this.prisma.hackathon.findUnique({
+                    where: {
+                        sourceId_sourcePlatform: {
+                            sourceId: hackathon.sourceId,
+                            sourcePlatform: hackathon.sourcePlatform
+                        }
+                    },
+                    select: {
+                        id: true
                     }
-                },
-                select: {
-                    id: true
-                }
-            });
-            const data = {
-                title: hackathon.title,
-                description: hackathon.description,
-                startsAt: new Date(hackathon.startsAt),
-                endsAt: hackathon.endsAt ? new Date(hackathon.endsAt) : null,
-                locationType: hackathon.locationType,
-                locationName: hackathon.locationName,
-                latitude: hackathon.latitude,
-                longitude: hackathon.longitude,
-                canonicalUrl: hackathon.canonicalUrl,
-                imageUrl: hackathon.imageUrl,
-                rawSourcePayload: hackathon.rawSourcePayload
-            };
-            const result = await this.prisma.hackathon.upsert({
-                where: {
-                    sourceId_sourcePlatform: {
-                        sourceId: hackathon.sourceId,
-                        sourcePlatform: hackathon.sourcePlatform
-                    }
-                },
-                update: data,
-                create: {
-                    sourceId: hackathon.sourceId,
-                    sourcePlatform: hackathon.sourcePlatform,
-                    ...data
-                }
-            });
-            const created = !existing;
-            __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].debug({
-                id: result.id,
-                platform: hackathon.sourcePlatform,
-                sourceId: hackathon.sourceId,
-                created
-            }, created ? "Hackathon record created" : "Hackathon record updated");
-            return {
-                id: result.id,
-                created
-            };
-        } catch (error) {
-            __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].error({
-                error: error instanceof Error ? error.message : String(error),
-                hackathon: {
+                });
+                const data = {
                     title: hackathon.title,
-                    sourceId: hackathon.sourceId
-                }
-            }, "Failed to upsert hackathon");
-            throw error;
-        }
+                    description: hackathon.description,
+                    startsAt: new Date(hackathon.startsAt),
+                    endsAt: hackathon.endsAt ? new Date(hackathon.endsAt) : null,
+                    locationType: hackathon.locationType,
+                    locationName: hackathon.locationName,
+                    latitude: hackathon.latitude,
+                    longitude: hackathon.longitude,
+                    canonicalUrl: hackathon.canonicalUrl,
+                    imageUrl: hackathon.imageUrl,
+                    rawSourcePayload: hackathon.rawSourcePayload
+                };
+                const result = await this.prisma.hackathon.upsert({
+                    where: {
+                        sourceId_sourcePlatform: {
+                            sourceId: hackathon.sourceId,
+                            sourcePlatform: hackathon.sourcePlatform
+                        }
+                    },
+                    update: data,
+                    create: {
+                        sourceId: hackathon.sourceId,
+                        sourcePlatform: hackathon.sourcePlatform,
+                        ...data
+                    }
+                });
+                const created = !existing;
+                __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].debug({
+                    id: result.id,
+                    platform: hackathon.sourcePlatform,
+                    sourceId: hackathon.sourceId,
+                    created
+                }, created ? "Hackathon record created" : "Hackathon record updated");
+                return {
+                    id: result.id,
+                    created
+                };
+            } catch (error) {
+                __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].error({
+                    error: error instanceof Error ? error.message : String(error),
+                    hackathon: {
+                        title: hackathon.title,
+                        sourceId: hackathon.sourceId
+                    }
+                }, "Failed to upsert hackathon");
+                throw error;
+            }
+        });
     }
     /**
    * Batch upsert hackathons. Fail-soft: logs and skips individual failures.
@@ -253,19 +308,21 @@ class HackathonRepository {
     }
     /** Remove source records that are no longer present in a successful full scrape. */ async deleteMissingFromSource(sourcePlatform, sourceIds) {
         if (sourceIds.length === 0) return 0;
-        const result = await this.prisma.hackathon.deleteMany({
-            where: {
-                sourcePlatform,
-                sourceId: {
-                    notIn: sourceIds
+        return this.withRetry(async ()=>{
+            const result = await this.prisma.hackathon.deleteMany({
+                where: {
+                    sourcePlatform,
+                    sourceId: {
+                        notIn: sourceIds
+                    }
                 }
-            }
+            });
+            __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].info({
+                sourcePlatform,
+                deletedCount: result.count
+            }, "Removed stale source hackathons");
+            return result.count;
         });
-        __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].info({
-            sourcePlatform,
-            deletedCount: result.count
-        }, "Removed stale source hackathons");
-        return result.count;
     }
     /**
    * Automatically check whole database and delete hackathons that have ended.
@@ -274,27 +331,29 @@ class HackathonRepository {
    * 2. endsAt is null and startsAt < now
    */ async deleteEndedHackathons(now = new Date()) {
         const graceDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        const result = await this.prisma.hackathon.deleteMany({
-            where: {
-                OR: [
-                    {
-                        endsAt: {
-                            lt: now
+        return this.withRetry(async ()=>{
+            const result = await this.prisma.hackathon.deleteMany({
+                where: {
+                    OR: [
+                        {
+                            endsAt: {
+                                lt: now
+                            }
+                        },
+                        {
+                            endsAt: null,
+                            startsAt: {
+                                lt: graceDate
+                            }
                         }
-                    },
-                    {
-                        endsAt: null,
-                        startsAt: {
-                            lt: graceDate
-                        }
-                    }
-                ]
-            }
+                    ]
+                }
+            });
+            __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].info({
+                deletedCount: result.count
+            }, "Auto-cleaned ended hackathons from database");
+            return result.count;
         });
-        __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].info({
-            deletedCount: result.count
-        }, "Auto-cleaned ended hackathons from database");
-        return result.count;
     }
     /**
    * Query hackathons with combined optional filters + pagination.
@@ -526,7 +585,8 @@ class HackathonRepository {
         }, "Scrape run logged");
     }
 }
-}),
+__turbopack_async_result__();
+} catch(e) { __turbopack_async_result__(e); } }, false);}),
 "[project]/src/api/middleware/validate.ts [app-route] (ecmascript)", ((__turbopack_context__) => {
 "use strict";
 
@@ -583,9 +643,10 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$persistence$2f$db$2e$
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$persistence$2f$hackathon$2e$repository$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/persistence/hackathon.repository.ts [app-route] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$api$2f$middleware$2f$validate$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/api/middleware/validate.ts [app-route] (ecmascript)");
 var __turbopack_async_dependencies__ = __turbopack_handle_async_dependencies__([
-    __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$persistence$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__
+    __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$persistence$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__,
+    __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$persistence$2f$hackathon$2e$repository$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__
 ]);
-[__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$persistence$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__] = __turbopack_async_dependencies__.then ? (await __turbopack_async_dependencies__)() : __turbopack_async_dependencies__;
+[__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$persistence$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$persistence$2f$hackathon$2e$repository$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__] = __turbopack_async_dependencies__.then ? (await __turbopack_async_dependencies__)() : __turbopack_async_dependencies__;
 ;
 ;
 ;

@@ -15,21 +15,21 @@ export declare const HackathonQuerySchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     page: number;
     limit: number;
-    locationType?: "in-person" | "online" | "hybrid" | undefined;
     search?: string | undefined;
     platform?: "luma" | "devfolio" | "devpost" | "mlh" | "unstop" | "hackerearth" | "hackclub" | "other" | undefined;
+    locationType?: "in-person" | "online" | "hybrid" | undefined;
     startsAfter?: string | undefined;
     startsBefore?: string | undefined;
     includeDuplicates?: boolean | undefined;
 }, {
-    locationType?: unknown;
-    page?: number | undefined;
     search?: unknown;
     platform?: unknown;
-    limit?: number | undefined;
+    locationType?: unknown;
     startsAfter?: unknown;
     startsBefore?: unknown;
     includeDuplicates?: unknown;
+    page?: number | undefined;
+    limit?: number | undefined;
 }>;
 export type HackathonQuery = z.infer<typeof HackathonQuerySchema>;
 /**

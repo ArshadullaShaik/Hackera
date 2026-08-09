@@ -1,73 +1,94 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { NormalizedHackathon } from "../core/schema";
 import { logger } from "../core/logger";
+import { recreatePrismaClient } from "./db";
 
 export class HackathonRepository {
   constructor(private prisma: PrismaClient) { }
+
+  /**
+   * Retry an operation once if the connection was dropped.
+   * Recreates the Prisma client on the retry attempt.
+   */
+  private async withRetry<T>(operation: () => Promise<T>): Promise<T> {
+    try {
+      return await operation();
+    } catch (error: any) {
+      const message = error?.message || String(error);
+      if (message.includes("Server has closed the connection") || message.includes("Connection terminated")) {
+        logger.warn("Connection lost — recreating client and retrying...");
+        this.prisma = await recreatePrismaClient();
+        return await operation();
+      }
+      throw error;
+    }
+  }
 
   /**
    * Upsert a hackathon: update if (sourceId, sourcePlatform) already exists, else create new.
    * Uses Prisma's native upsert — atomic, no race condition.
    */
   async upsert(hackathon: NormalizedHackathon): Promise<{ id: string; created: boolean }> {
-    try {
-      // Check if record exists to determine created vs updated
-      const existing = await this.prisma.hackathon.findUnique({
-        where: {
-          sourceId_sourcePlatform: {
+    return this.withRetry(async () => {
+      try {
+        // Check if record exists to determine created vs updated
+        const existing = await this.prisma.hackathon.findUnique({
+          where: {
+            sourceId_sourcePlatform: {
+              sourceId: hackathon.sourceId,
+              sourcePlatform: hackathon.sourcePlatform,
+            },
+          },
+          select: { id: true },
+        });
+
+        const data = {
+          title: hackathon.title,
+          description: hackathon.description,
+          startsAt: new Date(hackathon.startsAt),
+          endsAt: hackathon.endsAt ? new Date(hackathon.endsAt) : null,
+          locationType: hackathon.locationType,
+          locationName: hackathon.locationName,
+          latitude: hackathon.latitude,
+          longitude: hackathon.longitude,
+          canonicalUrl: hackathon.canonicalUrl,
+          imageUrl: hackathon.imageUrl,
+          rawSourcePayload: hackathon.rawSourcePayload as Prisma.JsonObject,
+        };
+
+        const result = await this.prisma.hackathon.upsert({
+          where: {
+            sourceId_sourcePlatform: {
+              sourceId: hackathon.sourceId,
+              sourcePlatform: hackathon.sourcePlatform,
+            },
+          },
+          update: data,
+          create: {
             sourceId: hackathon.sourceId,
             sourcePlatform: hackathon.sourcePlatform,
+            ...data,
           },
-        },
-        select: { id: true },
-      });
+        });
 
-      const data = {
-        title: hackathon.title,
-        description: hackathon.description,
-        startsAt: new Date(hackathon.startsAt),
-        endsAt: hackathon.endsAt ? new Date(hackathon.endsAt) : null,
-        locationType: hackathon.locationType,
-        locationName: hackathon.locationName,
-        latitude: hackathon.latitude,
-        longitude: hackathon.longitude,
-        canonicalUrl: hackathon.canonicalUrl,
-        imageUrl: hackathon.imageUrl,
-        rawSourcePayload: hackathon.rawSourcePayload as Prisma.JsonObject,
-      };
+        const created = !existing;
+        logger.debug(
+          { id: result.id, platform: hackathon.sourcePlatform, sourceId: hackathon.sourceId, created },
+          created ? "Hackathon record created" : "Hackathon record updated"
+        );
 
-      const result = await this.prisma.hackathon.upsert({
-        where: {
-          sourceId_sourcePlatform: {
-            sourceId: hackathon.sourceId,
-            sourcePlatform: hackathon.sourcePlatform,
+        return { id: result.id, created };
+      } catch (error) {
+        logger.error(
+          {
+            error: error instanceof Error ? error.message : String(error),
+            hackathon: { title: hackathon.title, sourceId: hackathon.sourceId },
           },
-        },
-        update: data,
-        create: {
-          sourceId: hackathon.sourceId,
-          sourcePlatform: hackathon.sourcePlatform,
-          ...data,
-        },
-      });
-
-      const created = !existing;
-      logger.debug(
-        { id: result.id, platform: hackathon.sourcePlatform, sourceId: hackathon.sourceId, created },
-        created ? "Hackathon record created" : "Hackathon record updated"
-      );
-
-      return { id: result.id, created };
-    } catch (error) {
-      logger.error(
-        {
-          error: error instanceof Error ? error.message : String(error),
-          hackathon: { title: hackathon.title, sourceId: hackathon.sourceId },
-        },
         "Failed to upsert hackathon"
-      );
-      throw error;
-    }
+        );
+        throw error;
+      }
+    });
   }
 
   /**
@@ -107,14 +128,16 @@ export class HackathonRepository {
   async deleteMissingFromSource(sourcePlatform: string, sourceIds: string[]): Promise<number> {
     if (sourceIds.length === 0) return 0;
 
-    const result = await this.prisma.hackathon.deleteMany({
-      where: {
-        sourcePlatform,
-        sourceId: { notIn: sourceIds },
-      },
+    return this.withRetry(async () => {
+      const result = await this.prisma.hackathon.deleteMany({
+        where: {
+          sourcePlatform,
+          sourceId: { notIn: sourceIds },
+        },
+      });
+      logger.info({ sourcePlatform, deletedCount: result.count }, "Removed stale source hackathons");
+      return result.count;
     });
-    logger.info({ sourcePlatform, deletedCount: result.count }, "Removed stale source hackathons");
-    return result.count;
   }
 
   /**
@@ -125,16 +148,18 @@ export class HackathonRepository {
    */
   async deleteEndedHackathons(now: Date = new Date()): Promise<number> {
     const graceDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const result = await this.prisma.hackathon.deleteMany({
-      where: {
-        OR: [
-          { endsAt: { lt: now } },
-          { endsAt: null, startsAt: { lt: graceDate } },
-        ],
-      },
+    return this.withRetry(async () => {
+      const result = await this.prisma.hackathon.deleteMany({
+        where: {
+          OR: [
+            { endsAt: { lt: now } },
+            { endsAt: null, startsAt: { lt: graceDate } },
+          ],
+        },
+      });
+      logger.info({ deletedCount: result.count }, "Auto-cleaned ended hackathons from database");
+      return result.count;
     });
-    logger.info({ deletedCount: result.count }, "Auto-cleaned ended hackathons from database");
-    return result.count;
   }
 
   /**
