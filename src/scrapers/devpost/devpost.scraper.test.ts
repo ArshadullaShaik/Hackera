@@ -32,7 +32,7 @@ describe("DevpostScraper", () => {
     const events = await new DevpostScraper().scrape();
 
     expect(events).toHaveLength(2);
-    expect(axios.get).toHaveBeenCalledTimes(2);
+    expect(axios.get).toHaveBeenCalledTimes(4);
     expect(axios.get).toHaveBeenNthCalledWith(
       1,
       "https://devpost.com/api/hackathons",
@@ -41,6 +41,17 @@ describe("DevpostScraper", () => {
           order_by: "recently-added",
           "status[]": ["upcoming", "open"],
           page: 1,
+        }),
+      })
+    );
+    expect(axios.get).toHaveBeenNthCalledWith(
+      2,
+      "https://devpost.com/api/hackathons",
+      expect.objectContaining({
+        params: expect.objectContaining({
+          order_by: "recently-added",
+          "status[]": ["upcoming", "open"],
+          page: 2,
         }),
       })
     );

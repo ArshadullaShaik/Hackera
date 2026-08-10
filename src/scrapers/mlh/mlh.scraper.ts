@@ -9,9 +9,17 @@ import {
   extractPrizePool,
   formatDescription,
 } from "../../core/enrichment.js";
+import {
+  extractDetailDates,
+  fetchDetailPayload,
+  mapWithConcurrency,
+  mergeRawSourcePayload,
+} from "../../core/detail-enrichment.js";
 
 export class MLHScraper implements Scraper {
   private readonly targetUrl = "https://mlh.io/seasons/2026/events";
+  private readonly detailConcurrency = 3;
+  private readonly detailTimeout = 15000;
 
   async scrape(): Promise<NormalizedHackathon[]> {
     logger.info({ url: this.targetUrl }, "Starting MLH scrape");
@@ -71,8 +79,10 @@ export class MLHScraper implements Scraper {
       }
     }
 
-    logger.info({ count: hackathons.length }, "Completed MLH scrape");
-    return hackathons;
+    const enrichedHackathons = await this.enrichHackathons(hackathons);
+
+    logger.info({ count: enrichedHackathons.length }, "Completed MLH scrape");
+    return enrichedHackathons;
   }
 
   private normalize(raw: any): NormalizedHackathon | null {
@@ -113,5 +123,32 @@ export class MLHScraper implements Scraper {
       imageUrl: raw.backgroundUrl || raw.logoUrl || undefined,
       rawSourcePayload: raw,
     };
+  }
+
+  private async enrichHackathons(hackathons: NormalizedHackathon[]): Promise<NormalizedHackathon[]> {
+    return mapWithConcurrency(hackathons, this.detailConcurrency, (hackathon) => this.enrichHackathon(hackathon));
+  }
+
+  private async enrichHackathon(hackathon: NormalizedHackathon): Promise<NormalizedHackathon> {
+    try {
+      const detailPayload = await fetchDetailPayload(hackathon.canonicalUrl, this.detailTimeout);
+      const detailDates = extractDetailDates(detailPayload);
+
+      return {
+        ...hackathon,
+        ...detailDates,
+        rawSourcePayload: mergeRawSourcePayload(hackathon.rawSourcePayload, detailPayload),
+      };
+    } catch (error) {
+      logger.warn(
+        {
+          error: error instanceof Error ? error.message : String(error),
+          url: hackathon.canonicalUrl,
+          sourceId: hackathon.sourceId,
+        },
+        "MLH detail enrichment failed; preserving list record"
+      );
+      return hackathon;
+    }
   }
 }

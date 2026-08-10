@@ -22,6 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const loadMoreText = document.getElementById("load-more-text");
   const statusBadge = document.getElementById("status-badge");
   const activeTagsBar = document.getElementById("active-tags-bar");
+  const shared = window.HackeraCardUtils || {};
 
   // Debounce Utility
   function debounce(fn, delay) {
@@ -30,6 +31,18 @@ document.addEventListener("DOMContentLoaded", () => {
       clearTimeout(timer);
       timer = setTimeout(() => fn.apply(this, args), delay);
     };
+  }
+
+  function formatCardDate(value) {
+    return shared.formatCardDate ? shared.formatCardDate(value) : null;
+  }
+
+  function resolvePrizeText(item) {
+    return shared.resolvePrizeText ? shared.resolvePrizeText(item) : "🏆 Prizes Available";
+  }
+
+  function resolveTrackBadges(item) {
+    return shared.resolveTrackBadges ? shared.resolveTrackBadges(item) : [];
   }
 
   // Fetch Hackathons from API
@@ -127,21 +140,21 @@ document.addEventListener("DOMContentLoaded", () => {
     // Platform Badge Tag
     const platformName = (item.sourcePlatform || "OTHER").toUpperCase();
 
-    // Date formatting
-    const startDate = item.startsAt ? new Date(item.startsAt) : null;
-    const dateFormatted = startDate && !isNaN(startDate)
-      ? startDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-      : "UPCOMING";
-
-    // Prize text extraction
-    let prizeText = "🏆 Cash & Prizes";
-    if (item.rawSourcePayload?.prize_amount) {
-      prizeText = `🏆 ${item.rawSourcePayload.prize_amount.replace(/<[^>]*>?/gm, "")}`;
-    } else if (item.rawSourcePayload?.prizes?.length) {
-      const p = item.rawSourcePayload.prizes[0];
-      if (p.cash) prizeText = `🏆 ${p.cash} Pool`;
-      else if (p.others) prizeText = `🏆 ${p.others.slice(0, 20)}`;
-    }
+    const startDateFormatted = formatCardDate(item.startsAt) || "UPCOMING";
+    const registrationStartsFormatted = formatCardDate(item.registrationStartsAt);
+    const registrationEndsFormatted = formatCardDate(item.registrationEndsAt);
+    const prizeText = resolvePrizeText(item);
+    const trackBadges = resolveTrackBadges(item);
+    const trackIcons = {
+      "Game Dev": "🎮",
+      "AI / ML": "🤖",
+      "Web3 / Blockchain": "⛓️",
+      "Web3": "⛓️",
+      "Mobile": "📱",
+      "Cybersecurity": "🛡️",
+      "Fintech": "💳",
+      "Healthtech": "🩺",
+    };
 
     // Image Cover
     const imageUrl = item.imageUrl;
@@ -161,7 +174,10 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="card-body">
         <div class="card-tags">
           <span class="pill-tag">${escapeHtml(platformName)}</span>
-          <span class="pill-tag pill-tag-date">📅 ${escapeHtml(dateFormatted)}</span>
+          <span class="pill-tag pill-tag-date">📅 Event starts: ${escapeHtml(startDateFormatted)}</span>
+          ${registrationStartsFormatted ? `<span class="pill-tag pill-tag-date">📝 Registration opens: ${escapeHtml(registrationStartsFormatted)}</span>` : ""}
+          ${registrationEndsFormatted ? `<span class="pill-tag pill-tag-date">🕒 Registration closes: ${escapeHtml(registrationEndsFormatted)}</span>` : ""}
+          ${trackBadges.map((t) => `<span class="pill-tag" style="background: #fef08a; color: #000;">${escapeHtml((trackIcons[t] || "🎯") + " " + t.toUpperCase())}</span>`).join("")}
         </div>
 
         <h2 class="card-title">${escapeHtml(item.title)}</h2>

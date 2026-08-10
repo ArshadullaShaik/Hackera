@@ -55,6 +55,8 @@ export class HackathonRepository {
           description: hackathon.description,
           startsAt: new Date(hackathon.startsAt),
           endsAt: hackathon.endsAt ? new Date(hackathon.endsAt) : null,
+          registrationStartsAt: hackathon.registrationStartsAt ? new Date(hackathon.registrationStartsAt) : undefined,
+          registrationEndsAt: hackathon.registrationEndsAt ? new Date(hackathon.registrationEndsAt) : undefined,
           locationType: hackathon.locationType,
           locationName: hackathon.locationName,
           latitude: hackathon.latitude,

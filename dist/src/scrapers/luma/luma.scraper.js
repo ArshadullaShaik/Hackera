@@ -3,6 +3,7 @@ import axios from "axios";
 import { NormalizedHackathonSchema, } from "../../core/schema.js";
 import { logger } from "../../core/logger.js";
 import { determineLocationType, detectTracks, extractPrizePool, formatDescription, } from "../../core/enrichment.js";
+import { extractDetailDates, fetchDetailPayload, mapWithConcurrency, mergeRawSourcePayload, } from "../../core/detail-enrichment.js";
 /**
  * Raw Luma API event schema
  * These field names and shapes come directly from the Luma API response.
@@ -42,6 +43,7 @@ export class LumaScraper {
         this.PAGINATION_LIMIT = 25;
         this.TIMEOUT = 10000; // 10 seconds
         this.MAX_PAGES = 5; // Limit pagination for Phase 1 validation
+        this.DETAIL_CONCURRENCY = 3;
     }
     async scrape() {
         const results = [];
@@ -97,8 +99,9 @@ export class LumaScraper {
             if (pageCount >= this.MAX_PAGES) {
                 logger.info({ maxPages: this.MAX_PAGES }, "Reached maximum page limit for Phase 1");
             }
-            logger.info({ totalEvents: results.length }, "Luma scraping complete");
-            return results;
+            const enrichedResults = await this.enrichHackathons(results);
+            logger.info({ totalEvents: enrichedResults.length }, "Luma scraping complete");
+            return enrichedResults;
         }
         catch (error) {
             // Fail-fast at envelope level
@@ -148,6 +151,28 @@ export class LumaScraper {
             imageUrl: raw.cover_url,
             rawSourcePayload: rawPayload,
         });
+    }
+    async enrichHackathons(hackathons) {
+        return mapWithConcurrency(hackathons, this.DETAIL_CONCURRENCY, (hackathon) => this.enrichHackathon(hackathon));
+    }
+    async enrichHackathon(hackathon) {
+        try {
+            const detailPayload = await fetchDetailPayload(hackathon.canonicalUrl, this.TIMEOUT);
+            const detailDates = extractDetailDates(detailPayload);
+            return {
+                ...hackathon,
+                ...detailDates,
+                rawSourcePayload: mergeRawSourcePayload(hackathon.rawSourcePayload, detailPayload),
+            };
+        }
+        catch (error) {
+            logger.warn({
+                error: error instanceof Error ? error.message : String(error),
+                url: hackathon.canonicalUrl,
+                sourceId: hackathon.sourceId,
+            }, "Luma detail enrichment failed; preserving list record");
+            return hackathon;
+        }
     }
 }
 //# sourceMappingURL=luma.scraper.js.map

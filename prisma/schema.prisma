@@ -22,6 +22,8 @@ model Hackathon {
   description String    @default("")
   startsAt    DateTime
   endsAt      DateTime?
+  registrationStartsAt DateTime?
+  registrationEndsAt   DateTime?
 
   // Location
   locationType String // "in-person" | "online" | "hybrid"

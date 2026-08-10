@@ -11,6 +11,8 @@ export const NormalizedHackathonSchema = z.object({
   description: z.string().optional().default(""),
   startsAt: z.string().datetime({ offset: true }), // ISO 8601 datetime with optional timezone
   endsAt: z.string().datetime({ offset: true }).optional(),
+  registrationStartsAt: z.string().datetime({ offset: true }).optional(),
+  registrationEndsAt: z.string().datetime({ offset: true }).optional(),
   
   // Location
   locationType: z.enum(["in-person", "online", "hybrid"]),

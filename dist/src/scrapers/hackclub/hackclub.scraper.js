@@ -1,9 +1,12 @@
 import axios from "axios";
 import { logger } from "../../core/logger.js";
 import { determineLocationType, detectTracks, extractPrizePool, formatDescription, } from "../../core/enrichment.js";
+import { extractDetailDates, fetchDetailPayload, mapWithConcurrency, mergeRawSourcePayload, } from "../../core/detail-enrichment.js";
 export class HackClubScraper {
     constructor() {
         this.targetUrl = "https://hackathons.hackclub.com/api/events/upcoming";
+        this.detailConcurrency = 3;
+        this.detailTimeout = 15000;
     }
     async scrape() {
         logger.info({ targetUrl: this.targetUrl }, "Starting Hack Club scrape");
@@ -35,8 +38,9 @@ export class HackClubScraper {
                 logger.warn({ error: err instanceof Error ? err.message : String(err), id: raw.id || raw.title || raw.name }, "Failed to normalize individual Hack Club event");
             }
         }
-        logger.info({ count: hackathons.length }, "Completed Hack Club scrape");
-        return hackathons;
+        const enrichedHackathons = await this.enrichHackathons(hackathons);
+        logger.info({ count: enrichedHackathons.length }, "Completed Hack Club scrape");
+        return enrichedHackathons;
     }
     normalize(raw) {
         const title = raw.title || raw.name;
@@ -89,6 +93,28 @@ export class HackClubScraper {
             imageUrl: raw.banner || raw.logo || raw.bg_image || undefined,
             rawSourcePayload: raw,
         };
+    }
+    async enrichHackathons(hackathons) {
+        return mapWithConcurrency(hackathons, this.detailConcurrency, (hackathon) => this.enrichHackathon(hackathon));
+    }
+    async enrichHackathon(hackathon) {
+        try {
+            const detailPayload = await fetchDetailPayload(hackathon.canonicalUrl, this.detailTimeout);
+            const detailDates = extractDetailDates(detailPayload);
+            return {
+                ...hackathon,
+                ...detailDates,
+                rawSourcePayload: mergeRawSourcePayload(hackathon.rawSourcePayload, detailPayload),
+            };
+        }
+        catch (error) {
+            logger.warn({
+                error: error instanceof Error ? error.message : String(error),
+                url: hackathon.canonicalUrl,
+                sourceId: hackathon.sourceId,
+            }, "Hack Club detail enrichment failed; preserving list record");
+            return hackathon;
+        }
     }
 }
 //# sourceMappingURL=hackclub.scraper.js.map

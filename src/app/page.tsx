@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, ChangeEvent } from "react";
+import { formatCardDate, resolvePrizeText, resolveTrackBadges } from "../core/card-utils.js";
 
 interface HackathonItem {
   id: string;
@@ -10,6 +11,8 @@ interface HackathonItem {
   description?: string;
   startsAt: string;
   endsAt?: string;
+  registrationStartsAt?: string;
+  registrationEndsAt?: string;
   locationType: "in-person" | "online" | "hybrid";
   locationName?: string;
   canonicalUrl: string;
@@ -388,43 +391,11 @@ export default function Home() {
               }
 
               const platformName = (item.sourcePlatform || "OTHER").toUpperCase();
-              const startDate = item.startsAt ? new Date(item.startsAt) : null;
-              const endDate = item.endsAt ? new Date(item.endsAt) : null;
-              const formatDate = (date: Date | null) =>
-                date && !isNaN(date.getTime())
-                  ? date.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      timeZone: "UTC",
-                    })
-                  : null;
-              const startDateFormatted = formatDate(startDate);
-              const endDateFormatted = formatDate(endDate);
-              const dateRange = startDateFormatted
-                ? `${startDateFormatted}${endDateFormatted ? ` – ${endDateFormatted}` : ""}`
-                : "UPCOMING";
-
-              // Extract Prize Pool ($ or ₹)
-              let prizeText = "🏆 Cash & Prizes";
+              const startDateFormatted = formatCardDate(item.startsAt) || "UPCOMING";
+              const registrationStartsFormatted = formatCardDate(item.registrationStartsAt);
+              const registrationEndsFormatted = formatCardDate(item.registrationEndsAt);
+              const prizeText = resolvePrizeText(item);
               const rawDesc = item.description || "";
-              const matchPrize = rawDesc.match(/Prize Pool:\s*([^\]|]+)/i);
-              
-              if (matchPrize && matchPrize[1].trim()) {
-                prizeText = `🏆 ${matchPrize[1].trim()}`;
-              } else if (item.rawSourcePayload?.prize_amount) {
-                prizeText = `🏆 ${item.rawSourcePayload.prize_amount.replace(/<[^>]*>?/gm, "")}`;
-              } else if (item.rawSourcePayload?.prize_money) {
-                const val = String(item.rawSourcePayload.prize_money).replace(/<[^>]*>?/gm, "");
-                prizeText = `🏆 ${val.startsWith("$") || val.startsWith("₹") ? val : `₹${val}`}`;
-              } else {
-                const usdMatch = rawDesc.match(/(\$\s*\d[\d,]*\s*(?:k|m|million|thousand)?)/i);
-                const inrMatch = rawDesc.match(/(₹\s*\d[\d,]*\s*(?:lakh|l|k|crore)?|inr\s*\d[\d,]*|rs\.?\s*\d[\d,]*)/i);
-                if (usdMatch) {
-                  prizeText = `🏆 ${usdMatch[1].replace(/\s+/g, "")}`;
-                } else if (inrMatch) {
-                  prizeText = `🏆 ${inrMatch[1].replace(/inr\s*/i, "₹").replace(/rs\.?\s*/i, "₹").replace(/\s+/g, "")}`;
-                }
-              }
 
               // Extract or Detect Tracks
               let trackBadges: string[] = [];
@@ -483,9 +454,13 @@ export default function Home() {
                   <div className="card-body">
                     <div className="card-tags">
                       <span className="pill-tag">{platformName}</span>
-                      <span className="pill-tag pill-tag-date">
-                        📅 {dateRange}
-                      </span>
+                      <span className="pill-tag pill-tag-date">📅 Event starts: {startDateFormatted}</span>
+                      {registrationStartsFormatted && (
+                        <span className="pill-tag pill-tag-date">📝 Registration opens: {registrationStartsFormatted}</span>
+                      )}
+                      {registrationEndsFormatted && (
+                        <span className="pill-tag pill-tag-date">🕒 Registration closes: {registrationEndsFormatted}</span>
+                      )}
                       {trackBadges.map((t) => (
                         <span key={t} className="pill-tag" style={{ background: "#fef08a", color: "#000" }}>
                           {trackIcons[t] || "🎯"} {t.toUpperCase()}

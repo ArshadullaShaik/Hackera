@@ -4,6 +4,7 @@ import * as cheerio from "cheerio";
 import { NormalizedHackathonSchema, } from "../../core/schema.js";
 import { logger } from "../../core/logger.js";
 import { determineLocationType, detectTracks, extractPrizePool, formatDescription, } from "../../core/enrichment.js";
+import { extractDetailDates, fetchDetailPayload, mapWithConcurrency, mergeRawSourcePayload, } from "../../core/detail-enrichment.js";
 /**
  * Raw Devfolio hackathon schema
  * Extracted from embedded JSON in devfolio.co/hackathons HTML
@@ -39,6 +40,7 @@ export class DevfolioScraper {
         this.BASE_URL = "https://devfolio.co/hackathons";
         this.TIMEOUT = 15000; // 15 seconds for rendering
         this.MAX_EVENTS = 100; // Limit for Phase 2 validation
+        this.DETAIL_CONCURRENCY = 3;
     }
     async scrape() {
         const results = [];
@@ -161,8 +163,9 @@ export class DevfolioScraper {
                     // Continue processing other hackathons
                 }
             }
-            logger.info({ totalEvents: results.length }, "Devfolio scraping complete");
-            return results;
+            const enrichedResults = await this.enrichHackathons(results);
+            logger.info({ totalEvents: enrichedResults.length }, "Devfolio scraping complete");
+            return enrichedResults;
         }
         catch (error) {
             // Fail-fast at envelope level
@@ -192,6 +195,28 @@ export class DevfolioScraper {
             imageUrl: undefined,
             rawSourcePayload: rawPayload,
         });
+    }
+    async enrichHackathons(hackathons) {
+        return mapWithConcurrency(hackathons, this.DETAIL_CONCURRENCY, (hackathon) => this.enrichHackathon(hackathon));
+    }
+    async enrichHackathon(hackathon) {
+        try {
+            const detailPayload = await fetchDetailPayload(hackathon.canonicalUrl, this.TIMEOUT);
+            const detailDates = extractDetailDates(detailPayload);
+            return {
+                ...hackathon,
+                ...detailDates,
+                rawSourcePayload: mergeRawSourcePayload(hackathon.rawSourcePayload, detailPayload),
+            };
+        }
+        catch (error) {
+            logger.warn({
+                error: error instanceof Error ? error.message : String(error),
+                url: hackathon.canonicalUrl,
+                sourceId: hackathon.sourceId,
+            }, "Devfolio detail enrichment failed; preserving list record");
+            return hackathon;
+        }
     }
 }
 //# sourceMappingURL=devfolio.scraper.js.map

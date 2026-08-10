@@ -59,20 +59,20 @@ export declare class HackathonRepository {
      * Find a single hackathon by internal UUID.
      */
     findById(id: string): Promise<{
-        id: string;
-        sourceId: string;
-        sourcePlatform: string;
-        title: string;
-        description: string;
         startsAt: Date;
         endsAt: Date | null;
-        locationType: string;
-        locationName: string | null;
+        description: string;
         latitude: number | null;
         longitude: number | null;
+        title: string;
+        locationType: string;
+        locationName: string | null;
+        sourceId: string;
+        sourcePlatform: string;
         canonicalUrl: string;
         imageUrl: string | null;
         rawSourcePayload: Prisma.JsonValue;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         duplicateOfId: string | null;
@@ -81,20 +81,20 @@ export declare class HackathonRepository {
      * Get all hackathons from database (paginated, latest first).
      */
     findAll(limit?: number, offset?: number): Promise<{
-        id: string;
-        sourceId: string;
-        sourcePlatform: string;
-        title: string;
-        description: string;
         startsAt: Date;
         endsAt: Date | null;
-        locationType: string;
-        locationName: string | null;
+        description: string;
         latitude: number | null;
         longitude: number | null;
+        title: string;
+        locationType: string;
+        locationName: string | null;
+        sourceId: string;
+        sourcePlatform: string;
         canonicalUrl: string;
         imageUrl: string | null;
         rawSourcePayload: Prisma.JsonValue;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         duplicateOfId: string | null;
@@ -107,20 +107,20 @@ export declare class HackathonRepository {
      * Get hackathons by platform (latest first).
      */
     findByPlatform(platform: string, limit?: number, offset?: number): Promise<{
-        id: string;
-        sourceId: string;
-        sourcePlatform: string;
-        title: string;
-        description: string;
         startsAt: Date;
         endsAt: Date | null;
-        locationType: string;
-        locationName: string | null;
+        description: string;
         latitude: number | null;
         longitude: number | null;
+        title: string;
+        locationType: string;
+        locationName: string | null;
+        sourceId: string;
+        sourcePlatform: string;
         canonicalUrl: string;
         imageUrl: string | null;
         rawSourcePayload: Prisma.JsonValue;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         duplicateOfId: string | null;
@@ -129,20 +129,20 @@ export declare class HackathonRepository {
      * Get hackathons by date range (latest first).
      */
     findByDateRange(startsAfter: Date, startsBefore: Date, limit?: number): Promise<{
-        id: string;
-        sourceId: string;
-        sourcePlatform: string;
-        title: string;
-        description: string;
         startsAt: Date;
         endsAt: Date | null;
-        locationType: string;
-        locationName: string | null;
+        description: string;
         latitude: number | null;
         longitude: number | null;
+        title: string;
+        locationType: string;
+        locationName: string | null;
+        sourceId: string;
+        sourcePlatform: string;
         canonicalUrl: string;
         imageUrl: string | null;
         rawSourcePayload: Prisma.JsonValue;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         duplicateOfId: string | null;

@@ -9,6 +9,8 @@ export declare const NormalizedHackathonSchema: z.ZodObject<{
     description: z.ZodDefault<z.ZodOptional<z.ZodString>>;
     startsAt: z.ZodString;
     endsAt: z.ZodOptional<z.ZodString>;
+    registrationStartsAt: z.ZodOptional<z.ZodString>;
+    registrationEndsAt: z.ZodOptional<z.ZodString>;
     locationType: z.ZodEnum<["in-person", "online", "hybrid"]>;
     locationName: z.ZodOptional<z.ZodString>;
     latitude: z.ZodOptional<z.ZodNumber>;
@@ -19,29 +21,33 @@ export declare const NormalizedHackathonSchema: z.ZodObject<{
     imageUrl: z.ZodOptional<z.ZodString>;
     rawSourcePayload: z.ZodRecord<z.ZodString, z.ZodUnknown>;
 }, "strip", z.ZodTypeAny, {
-    locationType: "in-person" | "online" | "hybrid";
-    sourceId: string;
-    sourcePlatform: "luma" | "devfolio" | "devpost" | "mlh" | "unstop" | "hackerearth" | "hackclub" | "other";
     title: string;
     description: string;
     startsAt: string;
+    locationType: "in-person" | "online" | "hybrid";
+    sourceId: string;
+    sourcePlatform: "luma" | "devfolio" | "devpost" | "mlh" | "unstop" | "hackerearth" | "hackclub" | "other";
     canonicalUrl: string;
     rawSourcePayload: Record<string, unknown>;
     endsAt?: string | undefined;
+    registrationStartsAt?: string | undefined;
+    registrationEndsAt?: string | undefined;
     locationName?: string | undefined;
     latitude?: number | undefined;
     longitude?: number | undefined;
     imageUrl?: string | undefined;
 }, {
+    title: string;
+    startsAt: string;
     locationType: "in-person" | "online" | "hybrid";
     sourceId: string;
     sourcePlatform: "luma" | "devfolio" | "devpost" | "mlh" | "unstop" | "hackerearth" | "hackclub" | "other";
-    title: string;
-    startsAt: string;
     canonicalUrl: string;
     rawSourcePayload: Record<string, unknown>;
     description?: string | undefined;
     endsAt?: string | undefined;
+    registrationStartsAt?: string | undefined;
+    registrationEndsAt?: string | undefined;
     locationName?: string | undefined;
     latitude?: number | undefined;
     longitude?: number | undefined;

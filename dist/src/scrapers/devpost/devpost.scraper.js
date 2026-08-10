@@ -1,9 +1,12 @@
 import axios from "axios";
 import { logger } from "../../core/logger.js";
 import { determineLocationType, detectTracks, extractPrizePool, formatDescription, } from "../../core/enrichment.js";
+import { extractDetailDates, fetchDetailPayload, mapWithConcurrency, mergeRawSourcePayload, } from "../../core/detail-enrichment.js";
 export class DevpostScraper {
     constructor() {
         this.baseUrl = "https://devpost.com/api/hackathons";
+        this.detailConcurrency = 3;
+        this.detailTimeout = 15000;
     }
     async scrape() {
         logger.info({ baseUrl: this.baseUrl }, "Starting Devpost scrape");
@@ -61,8 +64,9 @@ export class DevpostScraper {
                 logger.warn({ error: err instanceof Error ? err.message : String(err), rawId: raw.id || raw.title }, "Failed to normalize individual Devpost hackathon");
             }
         }
-        logger.info({ count: hackathons.length }, "Completed Devpost scrape");
-        return hackathons;
+        const enrichedHackathons = await this.enrichHackathons(hackathons);
+        logger.info({ count: enrichedHackathons.length }, "Completed Devpost scrape");
+        return enrichedHackathons;
     }
     normalize(raw) {
         if (!raw.title || !raw.id || !raw.url) {
@@ -125,6 +129,28 @@ export class DevpostScraper {
             imageUrl: imageUrl && imageUrl.startsWith("http") ? imageUrl : undefined,
             rawSourcePayload: raw,
         };
+    }
+    async enrichHackathons(hackathons) {
+        return mapWithConcurrency(hackathons, this.detailConcurrency, (hackathon) => this.enrichHackathon(hackathon));
+    }
+    async enrichHackathon(hackathon) {
+        try {
+            const detailPayload = await fetchDetailPayload(hackathon.canonicalUrl, this.detailTimeout);
+            const detailDates = extractDetailDates(detailPayload);
+            return {
+                ...hackathon,
+                ...detailDates,
+                rawSourcePayload: mergeRawSourcePayload(hackathon.rawSourcePayload, detailPayload),
+            };
+        }
+        catch (error) {
+            logger.warn({
+                error: error instanceof Error ? error.message : String(error),
+                url: hackathon.canonicalUrl,
+                sourceId: hackathon.sourceId,
+            }, "Devpost detail enrichment failed; preserving list record");
+            return hackathon;
+        }
     }
 }
 //# sourceMappingURL=devpost.scraper.js.map

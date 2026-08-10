@@ -13,6 +13,12 @@ import {
   extractPrizePool,
   formatDescription,
 } from "../../core/enrichment.js";
+import {
+  extractDetailDates,
+  fetchDetailPayload,
+  mapWithConcurrency,
+  mergeRawSourcePayload,
+} from "../../core/detail-enrichment.js";
 
 /**
  * Raw Devfolio hackathon schema
@@ -52,6 +58,7 @@ export class DevfolioScraper implements Scraper {
   private readonly BASE_URL = "https://devfolio.co/hackathons";
   private readonly TIMEOUT = 15000; // 15 seconds for rendering
   private readonly MAX_EVENTS = 100; // Limit for Phase 2 validation
+  private readonly DETAIL_CONCURRENCY = 3;
 
   async scrape(): Promise<NormalizedHackathon[]> {
     const results: NormalizedHackathon[] = [];
@@ -216,8 +223,10 @@ export class DevfolioScraper implements Scraper {
         }
       }
 
-      logger.info({ totalEvents: results.length }, "Devfolio scraping complete");
-      return results;
+      const enrichedResults = await this.enrichHackathons(results);
+
+      logger.info({ totalEvents: enrichedResults.length }, "Devfolio scraping complete");
+      return enrichedResults;
     } catch (error) {
       // Fail-fast at envelope level
       logger.error(
@@ -260,5 +269,32 @@ export class DevfolioScraper implements Scraper {
       imageUrl: undefined,
       rawSourcePayload: rawPayload,
     });
+  }
+
+  private async enrichHackathons(hackathons: NormalizedHackathon[]): Promise<NormalizedHackathon[]> {
+    return mapWithConcurrency(hackathons, this.DETAIL_CONCURRENCY, (hackathon) => this.enrichHackathon(hackathon));
+  }
+
+  private async enrichHackathon(hackathon: NormalizedHackathon): Promise<NormalizedHackathon> {
+    try {
+      const detailPayload = await fetchDetailPayload(hackathon.canonicalUrl, this.TIMEOUT);
+      const detailDates = extractDetailDates(detailPayload);
+
+      return {
+        ...hackathon,
+        ...detailDates,
+        rawSourcePayload: mergeRawSourcePayload(hackathon.rawSourcePayload, detailPayload),
+      };
+    } catch (error) {
+      logger.warn(
+        {
+          error: error instanceof Error ? error.message : String(error),
+          url: hackathon.canonicalUrl,
+          sourceId: hackathon.sourceId,
+        },
+        "Devfolio detail enrichment failed; preserving list record"
+      );
+      return hackathon;
+    }
   }
 }

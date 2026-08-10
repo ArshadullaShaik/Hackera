@@ -2,9 +2,12 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 import { logger } from "../../core/logger.js";
 import { determineLocationType, detectTracks, extractPrizePool, formatDescription, } from "../../core/enrichment.js";
+import { extractDetailDates, fetchDetailPayload, mapWithConcurrency, mergeRawSourcePayload, } from "../../core/detail-enrichment.js";
 export class MLHScraper {
     constructor() {
         this.targetUrl = "https://mlh.io/seasons/2026/events";
+        this.detailConcurrency = 3;
+        this.detailTimeout = 15000;
     }
     async scrape() {
         logger.info({ url: this.targetUrl }, "Starting MLH scrape");
@@ -52,8 +55,9 @@ export class MLHScraper {
                 logger.warn({ error: err instanceof Error ? err.message : String(err), rawId: raw.id || raw.name }, "Failed to normalize individual MLH event");
             }
         }
-        logger.info({ count: hackathons.length }, "Completed MLH scrape");
-        return hackathons;
+        const enrichedHackathons = await this.enrichHackathons(hackathons);
+        logger.info({ count: enrichedHackathons.length }, "Completed MLH scrape");
+        return enrichedHackathons;
     }
     normalize(raw) {
         if (!raw.name || !raw.id || !raw.startsAt) {
@@ -88,6 +92,28 @@ export class MLHScraper {
             imageUrl: raw.backgroundUrl || raw.logoUrl || undefined,
             rawSourcePayload: raw,
         };
+    }
+    async enrichHackathons(hackathons) {
+        return mapWithConcurrency(hackathons, this.detailConcurrency, (hackathon) => this.enrichHackathon(hackathon));
+    }
+    async enrichHackathon(hackathon) {
+        try {
+            const detailPayload = await fetchDetailPayload(hackathon.canonicalUrl, this.detailTimeout);
+            const detailDates = extractDetailDates(detailPayload);
+            return {
+                ...hackathon,
+                ...detailDates,
+                rawSourcePayload: mergeRawSourcePayload(hackathon.rawSourcePayload, detailPayload),
+            };
+        }
+        catch (error) {
+            logger.warn({
+                error: error instanceof Error ? error.message : String(error),
+                url: hackathon.canonicalUrl,
+                sourceId: hackathon.sourceId,
+            }, "MLH detail enrichment failed; preserving list record");
+            return hackathon;
+        }
     }
 }
 //# sourceMappingURL=mlh.scraper.js.map

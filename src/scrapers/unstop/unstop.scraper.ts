@@ -8,10 +8,18 @@ import {
   extractPrizePool,
   formatDescription,
 } from "../../core/enrichment.js";
+import {
+  extractDetailDates,
+  fetchDetailPayload,
+  mapWithConcurrency,
+  mergeRawSourcePayload,
+} from "../../core/detail-enrichment.js";
 
 export class UnstopScraper implements Scraper {
   private readonly baseUrl = "https://unstop.com/api/public/opportunity/search-new";
   private readonly maxPages = 3;
+  private readonly detailConcurrency = 3;
+  private readonly detailTimeout = 15000;
 
   async scrape(): Promise<NormalizedHackathon[]> {
     logger.info({ baseUrl: this.baseUrl }, "Starting Unstop scrape");
@@ -68,8 +76,10 @@ export class UnstopScraper implements Scraper {
       }
     }
 
-    logger.info({ count: hackathons.length }, "Completed Unstop scrape");
-    return hackathons;
+    const enrichedHackathons = await this.enrichHackathons(hackathons);
+
+    logger.info({ count: enrichedHackathons.length }, "Completed Unstop scrape");
+    return enrichedHackathons;
   }
 
   private normalize(raw: any): NormalizedHackathon | null {
@@ -115,5 +125,32 @@ export class UnstopScraper implements Scraper {
       imageUrl: imageUrl && imageUrl.startsWith("http") ? imageUrl : undefined,
       rawSourcePayload: raw,
     };
+  }
+
+  private async enrichHackathons(hackathons: NormalizedHackathon[]): Promise<NormalizedHackathon[]> {
+    return mapWithConcurrency(hackathons, this.detailConcurrency, (hackathon) => this.enrichHackathon(hackathon));
+  }
+
+  private async enrichHackathon(hackathon: NormalizedHackathon): Promise<NormalizedHackathon> {
+    try {
+      const detailPayload = await fetchDetailPayload(hackathon.canonicalUrl, this.detailTimeout);
+      const detailDates = extractDetailDates(detailPayload);
+
+      return {
+        ...hackathon,
+        ...detailDates,
+        rawSourcePayload: mergeRawSourcePayload(hackathon.rawSourcePayload, detailPayload),
+      };
+    } catch (error) {
+      logger.warn(
+        {
+          error: error instanceof Error ? error.message : String(error),
+          url: hackathon.canonicalUrl,
+          sourceId: hackathon.sourceId,
+        },
+        "Unstop detail enrichment failed; preserving list record"
+      );
+      return hackathon;
+    }
   }
 }

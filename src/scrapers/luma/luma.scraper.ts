@@ -12,6 +12,12 @@ import {
   extractPrizePool,
   formatDescription,
 } from "../../core/enrichment.js";
+import {
+  extractDetailDates,
+  fetchDetailPayload,
+  mapWithConcurrency,
+  mergeRawSourcePayload,
+} from "../../core/detail-enrichment.js";
 
 /**
  * Raw Luma API event schema
@@ -55,6 +61,7 @@ export class LumaScraper implements Scraper {
   private readonly PAGINATION_LIMIT = 25;
   private readonly TIMEOUT = 10000; // 10 seconds
   private readonly MAX_PAGES = 5; // Limit pagination for Phase 1 validation
+  private readonly DETAIL_CONCURRENCY = 3;
 
   async scrape(): Promise<NormalizedHackathon[]> {
     const results: NormalizedHackathon[] = [];
@@ -134,8 +141,10 @@ export class LumaScraper implements Scraper {
         );
       }
 
-      logger.info({ totalEvents: results.length }, "Luma scraping complete");
-      return results;
+      const enrichedResults = await this.enrichHackathons(results);
+
+      logger.info({ totalEvents: enrichedResults.length }, "Luma scraping complete");
+      return enrichedResults;
     } catch (error) {
       // Fail-fast at envelope level
       logger.error(
@@ -196,5 +205,32 @@ export class LumaScraper implements Scraper {
       imageUrl: raw.cover_url,
       rawSourcePayload: rawPayload,
     });
+  }
+
+  private async enrichHackathons(hackathons: NormalizedHackathon[]): Promise<NormalizedHackathon[]> {
+    return mapWithConcurrency(hackathons, this.DETAIL_CONCURRENCY, (hackathon) => this.enrichHackathon(hackathon));
+  }
+
+  private async enrichHackathon(hackathon: NormalizedHackathon): Promise<NormalizedHackathon> {
+    try {
+      const detailPayload = await fetchDetailPayload(hackathon.canonicalUrl, this.TIMEOUT);
+      const detailDates = extractDetailDates(detailPayload);
+
+      return {
+        ...hackathon,
+        ...detailDates,
+        rawSourcePayload: mergeRawSourcePayload(hackathon.rawSourcePayload, detailPayload),
+      };
+    } catch (error) {
+      logger.warn(
+        {
+          error: error instanceof Error ? error.message : String(error),
+          url: hackathon.canonicalUrl,
+          sourceId: hackathon.sourceId,
+        },
+        "Luma detail enrichment failed; preserving list record"
+      );
+      return hackathon;
+    }
   }
 }

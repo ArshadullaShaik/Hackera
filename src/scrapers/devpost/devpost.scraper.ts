@@ -9,9 +9,17 @@ import {
   extractPrizePool,
   formatDescription,
 } from "../../core/enrichment.js";
+import {
+  extractDetailDates,
+  fetchDetailPayload,
+  mapWithConcurrency,
+  mergeRawSourcePayload,
+} from "../../core/detail-enrichment.js";
 
 export class DevpostScraper implements Scraper {
   private readonly baseUrl = "https://devpost.com/api/hackathons";
+  private readonly detailConcurrency = 3;
+  private readonly detailTimeout = 15000;
 
   async scrape(): Promise<NormalizedHackathon[]> {
     logger.info({ baseUrl: this.baseUrl }, "Starting Devpost scrape");
@@ -80,8 +88,10 @@ export class DevpostScraper implements Scraper {
       }
     }
 
-    logger.info({ count: hackathons.length }, "Completed Devpost scrape");
-    return hackathons;
+    const enrichedHackathons = await this.enrichHackathons(hackathons);
+
+    logger.info({ count: enrichedHackathons.length }, "Completed Devpost scrape");
+    return enrichedHackathons;
   }
 
   private normalize(raw: any): NormalizedHackathon | null {
@@ -155,5 +165,32 @@ export class DevpostScraper implements Scraper {
       imageUrl: imageUrl && imageUrl.startsWith("http") ? imageUrl : undefined,
       rawSourcePayload: raw,
     };
+  }
+
+  private async enrichHackathons(hackathons: NormalizedHackathon[]): Promise<NormalizedHackathon[]> {
+    return mapWithConcurrency(hackathons, this.detailConcurrency, (hackathon) => this.enrichHackathon(hackathon));
+  }
+
+  private async enrichHackathon(hackathon: NormalizedHackathon): Promise<NormalizedHackathon> {
+    try {
+      const detailPayload = await fetchDetailPayload(hackathon.canonicalUrl, this.detailTimeout);
+      const detailDates = extractDetailDates(detailPayload);
+
+      return {
+        ...hackathon,
+        ...detailDates,
+        rawSourcePayload: mergeRawSourcePayload(hackathon.rawSourcePayload, detailPayload),
+      };
+    } catch (error) {
+      logger.warn(
+        {
+          error: error instanceof Error ? error.message : String(error),
+          url: hackathon.canonicalUrl,
+          sourceId: hackathon.sourceId,
+        },
+        "Devpost detail enrichment failed; preserving list record"
+      );
+      return hackathon;
+    }
   }
 }
