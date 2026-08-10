@@ -112,7 +112,10 @@ button, input, select {
   font-size: 15px;
   color: var(--ink);
   position: relative;
-  padding: 4px 0;
+  padding: 4px 8px;
+  display: inline-block;
+  cursor: pointer;
+  z-index: 10;
 }
 
 .nav-item.active {

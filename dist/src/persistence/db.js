@@ -4,17 +4,16 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 import { logger } from "../core/logger.js";
-let prisma;
-let pool = null;
+const globalForPrisma = globalThis;
 function createPool() {
     const p = new pg.Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: { rejectUnauthorized: false },
-        max: 5,
-        idleTimeoutMillis: 0, // Never kill idle clients — let the server decide
-        connectionTimeoutMillis: 10000,
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 30000,
         keepAlive: true,
-        keepAliveInitialDelayMillis: 10000, // Send TCP keepalive every 10s to prevent Supabase pooler timeout
+        keepAliveInitialDelayMillis: 5000,
     });
     // Log and evict dead connections instead of crashing
     p.on("error", (err) => {
@@ -23,10 +22,10 @@ function createPool() {
     return p;
 }
 export function getPrismaClient() {
-    if (!prisma) {
-        pool = createPool();
-        const adapter = new PrismaPg(pool);
-        prisma = new PrismaClient({
+    if (!globalForPrisma.prisma) {
+        globalForPrisma.pool = createPool();
+        const adapter = new PrismaPg(globalForPrisma.pool);
+        globalForPrisma.prisma = new PrismaClient({
             adapter,
             log: [
                 { level: "error", emit: "stdout" },
@@ -35,7 +34,7 @@ export function getPrismaClient() {
         });
         logger.info("Prisma client initialized");
     }
-    return prisma;
+    return globalForPrisma.prisma;
 }
 /**
  * Force-recreate the Prisma client (e.g. after a connection loss).
@@ -47,12 +46,20 @@ export async function recreatePrismaClient() {
     return getPrismaClient();
 }
 export async function disconnectPrisma() {
-    if (prisma) {
-        await prisma.$disconnect();
-        // @ts-ignore — reset so getPrismaClient creates a fresh one
-        prisma = undefined;
-        pool = null;
-        logger.info("Prisma client disconnected");
+    if (globalForPrisma.prisma) {
+        try {
+            await globalForPrisma.prisma.$disconnect();
+        }
+        catch (_) { }
+        globalForPrisma.prisma = undefined;
     }
+    if (globalForPrisma.pool) {
+        try {
+            await globalForPrisma.pool.end();
+        }
+        catch (_) { }
+        globalForPrisma.pool = undefined;
+    }
+    logger.info("Prisma client disconnected and pool drained");
 }
 //# sourceMappingURL=db.js.map

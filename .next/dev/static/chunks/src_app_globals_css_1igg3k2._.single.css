@@ -97,9 +97,12 @@ button, input, select {
 .nav-item {
   font-family: var(--font-display);
   color: var(--ink);
-  padding: 4px 0;
+  cursor: pointer;
+  z-index: 10;
+  padding: 4px 8px;
   font-size: 15px;
   font-weight: 600;
+  display: inline-block;
   position: relative;
 }
 

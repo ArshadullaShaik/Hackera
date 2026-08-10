@@ -115,19 +115,18 @@ __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$dotenv$2f$lib$2f
 ;
 ;
 ;
-let prisma;
-let pool = null;
+const globalForPrisma = globalThis;
 function createPool() {
     const p = new __TURBOPACK__imported__module__$5b$externals$5d2f$pg__$5b$external$5d$__$28$pg$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$pg$29$__["default"].Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: {
             rejectUnauthorized: false
         },
-        max: 5,
-        idleTimeoutMillis: 0,
-        connectionTimeoutMillis: 10_000,
+        max: 10,
+        idleTimeoutMillis: 30_000,
+        connectionTimeoutMillis: 30_000,
         keepAlive: true,
-        keepAliveInitialDelayMillis: 10_000
+        keepAliveInitialDelayMillis: 5_000
     });
     // Log and evict dead connections instead of crashing
     p.on("error", (err)=>{
@@ -138,10 +137,10 @@ function createPool() {
     return p;
 }
 function getPrismaClient() {
-    if (!prisma) {
-        pool = createPool();
-        const adapter = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$prisma$2f$adapter$2d$pg$2f$dist$2f$index$2e$mjs__$5b$app$2d$route$5d$__$28$ecmascript$29$__["PrismaPg"](pool);
-        prisma = new __TURBOPACK__imported__module__$5b$externals$5d2f40$prisma$2f$client__$5b$external$5d$__$2840$prisma$2f$client$2c$__cjs$2c$__$5b$project$5d2f$node_modules$2f40$prisma$2f$client$29$__["PrismaClient"]({
+    if (!globalForPrisma.prisma) {
+        globalForPrisma.pool = createPool();
+        const adapter = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$prisma$2f$adapter$2d$pg$2f$dist$2f$index$2e$mjs__$5b$app$2d$route$5d$__$28$ecmascript$29$__["PrismaPg"](globalForPrisma.pool);
+        globalForPrisma.prisma = new __TURBOPACK__imported__module__$5b$externals$5d2f40$prisma$2f$client__$5b$external$5d$__$2840$prisma$2f$client$2c$__cjs$2c$__$5b$project$5d2f$node_modules$2f40$prisma$2f$client$29$__["PrismaClient"]({
             adapter,
             log: [
                 {
@@ -156,7 +155,7 @@ function getPrismaClient() {
         });
         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].info("Prisma client initialized");
     }
-    return prisma;
+    return globalForPrisma.prisma;
 }
 async function recreatePrismaClient() {
     __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].info("Recreating Prisma client after connection loss...");
@@ -164,13 +163,19 @@ async function recreatePrismaClient() {
     return getPrismaClient();
 }
 async function disconnectPrisma() {
-    if (prisma) {
-        await prisma.$disconnect();
-        // @ts-ignore — reset so getPrismaClient creates a fresh one
-        prisma = undefined;
-        pool = null;
-        __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].info("Prisma client disconnected");
+    if (globalForPrisma.prisma) {
+        try {
+            await globalForPrisma.prisma.$disconnect();
+        } catch (_) {}
+        globalForPrisma.prisma = undefined;
     }
+    if (globalForPrisma.pool) {
+        try {
+            await globalForPrisma.pool.end();
+        } catch (_) {}
+        globalForPrisma.pool = undefined;
+    }
+    __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].info("Prisma client disconnected and pool drained");
 }
 __turbopack_async_result__();
 } catch(e) { __turbopack_async_result__(e); } }, false);}),
@@ -204,8 +209,11 @@ class HackathonRepository {
             return await operation();
         } catch (error) {
             const message = error?.message || String(error);
-            if (message.includes("Server has closed the connection") || message.includes("Connection terminated")) {
-                __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].warn("Connection lost — recreating client and retrying...");
+            const isConnError = message.includes("Server has closed the connection") || message.includes("Connection terminated") || message.includes("timeout") || message.includes("closed") || message.includes("TLS") || message.includes("PrismaClient");
+            if (isConnError) {
+                __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$logger$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["logger"].warn({
+                    error: message
+                }, "Database connection error caught — recreating client and retrying...");
                 this.prisma = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$persistence$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["recreatePrismaClient"])();
                 return await operation();
             }
@@ -360,117 +368,119 @@ class HackathonRepository {
    * Excludes ended hackathons and orders soonest first (startsAt asc).
    * Returns both data and total count for pagination metadata.
    */ async findFiltered(filters) {
-        const conditions = [];
-        if (!filters.includeDuplicates) {
-            conditions.push({
-                duplicateOfId: null
-            });
-        }
-        if (filters.search) {
+        return this.withRetry(async ()=>{
+            const conditions = [];
+            if (!filters.includeDuplicates) {
+                conditions.push({
+                    duplicateOfId: null
+                });
+            }
+            if (filters.search) {
+                conditions.push({
+                    OR: [
+                        {
+                            title: {
+                                contains: filters.search,
+                                mode: "insensitive"
+                            }
+                        },
+                        {
+                            description: {
+                                contains: filters.search,
+                                mode: "insensitive"
+                            }
+                        }
+                    ]
+                });
+            }
+            if (filters.platform) {
+                conditions.push({
+                    sourcePlatform: filters.platform
+                });
+            }
+            if (filters.locationType) {
+                conditions.push({
+                    locationType: filters.locationType
+                });
+            }
+            if (filters.startsAfter || filters.startsBefore) {
+                const startsAtFilter = {};
+                if (filters.startsAfter) {
+                    startsAtFilter.gte = filters.startsAfter;
+                }
+                if (filters.startsBefore) {
+                    startsAtFilter.lte = filters.startsBefore;
+                }
+                conditions.push({
+                    startsAt: startsAtFilter
+                });
+            }
+            // Automatically exclude ended hackathons (allowing 30-day window if endsAt is null)
+            const now = new Date();
+            const graceDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
             conditions.push({
                 OR: [
                     {
-                        title: {
-                            contains: filters.search,
-                            mode: "insensitive"
+                        endsAt: {
+                            gte: now
                         }
                     },
                     {
-                        description: {
-                            contains: filters.search,
-                            mode: "insensitive"
+                        endsAt: null,
+                        startsAt: {
+                            gte: graceDate
                         }
                     }
                 ]
             });
-        }
-        if (filters.platform) {
-            conditions.push({
-                sourcePlatform: filters.platform
-            });
-        }
-        if (filters.locationType) {
-            conditions.push({
-                locationType: filters.locationType
-            });
-        }
-        if (filters.startsAfter || filters.startsBefore) {
-            const startsAtFilter = {};
-            if (filters.startsAfter) {
-                startsAtFilter.gte = filters.startsAfter;
-            }
-            if (filters.startsBefore) {
-                startsAtFilter.lte = filters.startsBefore;
-            }
-            conditions.push({
-                startsAt: startsAtFilter
-            });
-        }
-        // Automatically exclude ended hackathons (allowing 30-day window if endsAt is null)
-        const now = new Date();
-        const graceDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        conditions.push({
-            OR: [
-                {
-                    endsAt: {
-                        gte: now
-                    }
-                },
-                {
-                    endsAt: null,
-                    startsAt: {
-                        gte: graceDate
-                    }
+            const where = {
+                AND: conditions
+            };
+            const offset = (filters.page - 1) * filters.limit;
+            // Sorting by prize is calculated from source metadata, so the current set must
+            // be ordered before pagination is applied.
+            const allData = await this.prisma.hackathon.findMany({
+                where,
+                orderBy: {
+                    startsAt: "asc"
                 }
-            ]
+            });
+            const prizeValue = (hackathon)=>{
+                const raw = hackathon.rawSourcePayload || {};
+                const text = [
+                    raw.prize_amount,
+                    raw.prize_money,
+                    raw.prizes,
+                    hackathon.description
+                ].filter(Boolean).join(" ").replace(/<[^>]*>/g, " ");
+                const match = text.match(/(?:\$|₹|€|£|USD|INR|Rs\.?)[\s]*([\d,.]+)\s*(k|m|million|thousand|lakh|crore)?/i);
+                if (!match) return 0;
+                const amount = Number(match[1].replace(/,/g, ""));
+                const multiplier = {
+                    k: 1_000,
+                    thousand: 1_000,
+                    m: 1_000_000,
+                    million: 1_000_000,
+                    lakh: 100_000,
+                    crore: 10_000_000
+                }[match[2]?.toLowerCase() || ""] || 1;
+                return Number.isFinite(amount) ? amount * multiplier : 0;
+            };
+            const isCurrent = (hackathon)=>new Date(hackathon.startsAt) <= now;
+            allData.sort((a, b)=>{
+                const currentOrder = Number(isCurrent(b)) - Number(isCurrent(a));
+                if (currentOrder) return currentOrder;
+                if (isCurrent(a)) {
+                    const prizeOrder = prizeValue(b) - prizeValue(a);
+                    if (prizeOrder) return prizeOrder;
+                }
+                return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
+            });
+            return {
+                data: allData.slice(offset, offset + filters.limit),
+                total: allData.length
+            };
         });
-        const where = {
-            AND: conditions
-        };
-        const offset = (filters.page - 1) * filters.limit;
-        // Sorting by prize is calculated from source metadata, so the current set must
-        // be ordered before pagination is applied.
-        const allData = await this.prisma.hackathon.findMany({
-            where,
-            orderBy: {
-                startsAt: "asc"
-            }
-        });
-        const prizeValue = (hackathon)=>{
-            const raw = hackathon.rawSourcePayload || {};
-            const text = [
-                raw.prize_amount,
-                raw.prize_money,
-                raw.prizes,
-                hackathon.description
-            ].filter(Boolean).join(" ").replace(/<[^>]*>/g, " ");
-            const match = text.match(/(?:\$|₹|€|£|USD|INR|Rs\.?)[\s]*([\d,.]+)\s*(k|m|million|thousand|lakh|crore)?/i);
-            if (!match) return 0;
-            const amount = Number(match[1].replace(/,/g, ""));
-            const multiplier = {
-                k: 1_000,
-                thousand: 1_000,
-                m: 1_000_000,
-                million: 1_000_000,
-                lakh: 100_000,
-                crore: 10_000_000
-            }[match[2]?.toLowerCase() || ""] || 1;
-            return Number.isFinite(amount) ? amount * multiplier : 0;
-        };
-        const isCurrent = (hackathon)=>new Date(hackathon.startsAt) <= now;
-        allData.sort((a, b)=>{
-            const currentOrder = Number(isCurrent(b)) - Number(isCurrent(a));
-            if (currentOrder) return currentOrder;
-            if (isCurrent(a)) {
-                const prizeOrder = prizeValue(b) - prizeValue(a);
-                if (prizeOrder) return prizeOrder;
-            }
-            return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
-        });
-        return {
-            data: allData.slice(offset, offset + filters.limit),
-            total: allData.length
-        };
     }
     /**
    * Run cross-source deduplication on all records.

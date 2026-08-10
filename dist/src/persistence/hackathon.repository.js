@@ -14,8 +14,14 @@ export class HackathonRepository {
         }
         catch (error) {
             const message = error?.message || String(error);
-            if (message.includes("Server has closed the connection") || message.includes("Connection terminated")) {
-                logger.warn("Connection lost — recreating client and retrying...");
+            const isConnError = message.includes("Server has closed the connection") ||
+                message.includes("Connection terminated") ||
+                message.includes("timeout") ||
+                message.includes("closed") ||
+                message.includes("TLS") ||
+                message.includes("PrismaClient");
+            if (isConnError) {
+                logger.warn({ error: message }, "Database connection error caught — recreating client and retrying...");
                 this.prisma = await recreatePrismaClient();
                 return await operation();
             }
@@ -147,87 +153,89 @@ export class HackathonRepository {
      * Returns both data and total count for pagination metadata.
      */
     async findFiltered(filters) {
-        const conditions = [];
-        if (!filters.includeDuplicates) {
-            conditions.push({ duplicateOfId: null });
-        }
-        if (filters.search) {
+        return this.withRetry(async () => {
+            const conditions = [];
+            if (!filters.includeDuplicates) {
+                conditions.push({ duplicateOfId: null });
+            }
+            if (filters.search) {
+                conditions.push({
+                    OR: [
+                        { title: { contains: filters.search, mode: "insensitive" } },
+                        { description: { contains: filters.search, mode: "insensitive" } },
+                    ],
+                });
+            }
+            if (filters.platform) {
+                conditions.push({ sourcePlatform: filters.platform });
+            }
+            if (filters.locationType) {
+                conditions.push({ locationType: filters.locationType });
+            }
+            if (filters.startsAfter || filters.startsBefore) {
+                const startsAtFilter = {};
+                if (filters.startsAfter) {
+                    startsAtFilter.gte = filters.startsAfter;
+                }
+                if (filters.startsBefore) {
+                    startsAtFilter.lte = filters.startsBefore;
+                }
+                conditions.push({ startsAt: startsAtFilter });
+            }
+            // Automatically exclude ended hackathons (allowing 30-day window if endsAt is null)
+            const now = new Date();
+            const graceDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
             conditions.push({
                 OR: [
-                    { title: { contains: filters.search, mode: "insensitive" } },
-                    { description: { contains: filters.search, mode: "insensitive" } },
+                    { endsAt: { gte: now } },
+                    { endsAt: null, startsAt: { gte: graceDate } },
                 ],
             });
-        }
-        if (filters.platform) {
-            conditions.push({ sourcePlatform: filters.platform });
-        }
-        if (filters.locationType) {
-            conditions.push({ locationType: filters.locationType });
-        }
-        if (filters.startsAfter || filters.startsBefore) {
-            const startsAtFilter = {};
-            if (filters.startsAfter) {
-                startsAtFilter.gte = filters.startsAfter;
-            }
-            if (filters.startsBefore) {
-                startsAtFilter.lte = filters.startsBefore;
-            }
-            conditions.push({ startsAt: startsAtFilter });
-        }
-        // Automatically exclude ended hackathons (allowing 30-day window if endsAt is null)
-        const now = new Date();
-        const graceDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        conditions.push({
-            OR: [
-                { endsAt: { gte: now } },
-                { endsAt: null, startsAt: { gte: graceDate } },
-            ],
+            const where = { AND: conditions };
+            const offset = (filters.page - 1) * filters.limit;
+            // Sorting by prize is calculated from source metadata, so the current set must
+            // be ordered before pagination is applied.
+            const allData = await this.prisma.hackathon.findMany({
+                where,
+                orderBy: { startsAt: "asc" },
+            });
+            const prizeValue = (hackathon) => {
+                const raw = hackathon.rawSourcePayload || {};
+                const text = [raw.prize_amount, raw.prize_money, raw.prizes, hackathon.description]
+                    .filter(Boolean)
+                    .join(" ")
+                    .replace(/<[^>]*>/g, " ");
+                const match = text.match(/(?:\$|₹|€|£|USD|INR|Rs\.?)[\s]*([\d,.]+)\s*(k|m|million|thousand|lakh|crore)?/i);
+                if (!match)
+                    return 0;
+                const amount = Number(match[1].replace(/,/g, ""));
+                const multiplier = {
+                    k: 1000,
+                    thousand: 1000,
+                    m: 1000000,
+                    million: 1000000,
+                    lakh: 100000,
+                    crore: 10000000,
+                }[match[2]?.toLowerCase() || ""] || 1;
+                return Number.isFinite(amount) ? amount * multiplier : 0;
+            };
+            const isCurrent = (hackathon) => new Date(hackathon.startsAt) <= now;
+            allData.sort((a, b) => {
+                const currentOrder = Number(isCurrent(b)) - Number(isCurrent(a));
+                if (currentOrder)
+                    return currentOrder;
+                if (isCurrent(a)) {
+                    const prizeOrder = prizeValue(b) - prizeValue(a);
+                    if (prizeOrder)
+                        return prizeOrder;
+                }
+                return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
+            });
+            return {
+                data: allData.slice(offset, offset + filters.limit),
+                total: allData.length,
+            };
         });
-        const where = { AND: conditions };
-        const offset = (filters.page - 1) * filters.limit;
-        // Sorting by prize is calculated from source metadata, so the current set must
-        // be ordered before pagination is applied.
-        const allData = await this.prisma.hackathon.findMany({
-            where,
-            orderBy: { startsAt: "asc" },
-        });
-        const prizeValue = (hackathon) => {
-            const raw = hackathon.rawSourcePayload || {};
-            const text = [raw.prize_amount, raw.prize_money, raw.prizes, hackathon.description]
-                .filter(Boolean)
-                .join(" ")
-                .replace(/<[^>]*>/g, " ");
-            const match = text.match(/(?:\$|₹|€|£|USD|INR|Rs\.?)[\s]*([\d,.]+)\s*(k|m|million|thousand|lakh|crore)?/i);
-            if (!match)
-                return 0;
-            const amount = Number(match[1].replace(/,/g, ""));
-            const multiplier = {
-                k: 1000,
-                thousand: 1000,
-                m: 1000000,
-                million: 1000000,
-                lakh: 100000,
-                crore: 10000000,
-            }[match[2]?.toLowerCase() || ""] || 1;
-            return Number.isFinite(amount) ? amount * multiplier : 0;
-        };
-        const isCurrent = (hackathon) => new Date(hackathon.startsAt) <= now;
-        allData.sort((a, b) => {
-            const currentOrder = Number(isCurrent(b)) - Number(isCurrent(a));
-            if (currentOrder)
-                return currentOrder;
-            if (isCurrent(a)) {
-                const prizeOrder = prizeValue(b) - prizeValue(a);
-                if (prizeOrder)
-                    return prizeOrder;
-            }
-            return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
-        });
-        return {
-            data: allData.slice(offset, offset + filters.limit),
-            total: allData.length,
-        };
     }
     /**
      * Run cross-source deduplication on all records.

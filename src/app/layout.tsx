@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 
 const inter = Inter({
@@ -28,48 +29,41 @@ export default function RootLayout({
       <body>
         <header className="navbar">
           <div className="nav-container">
-            <a href="#" className="brand-logo">
+            <Link href="/" className="brand-logo">
               HACKERA
-            </a>
+            </Link>
 
             <nav className="nav-links">
-              <a href="#" className="nav-item active">
+              <Link href="/" className="nav-item active">
                 Explore
-              </a>
+              </Link>
 
               <a
-                href="https://www.reddit.com/r/Hackera/s/ufHNalBCJd"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="https://t.me/Hackeraoffical"
                 className="nav-item"
               >
                 Community
               </a>
-              <a href="#help" className="nav-item">
+              <Link href="/terms" className="nav-item">
                 Help
-              </a>
+              </Link>
             </nav>
 
-            <div className="nav-actions">
-              <button className="btn btn-outline">SIGN IN</button>
-              <button className="btn btn-dark">JOIN NOW</button>
-            </div>
+
           </div>
         </header>
-
         <main className="main-content">{children}</main>
 
         <footer className="footer">
           <div className="footer-container">
             <div className="footer-brand">
-              <span className="footer-logo">HACKERA</span>
+              <Link href="/" className="footer-logo">HACKERA</Link>
             </div>
 
             <nav className="footer-nav">
-              <a href="#">TERMS</a>
-              <a href="#">PRIVACY</a>
-              <a href="#">LANGUAGE</a>
-              <a href="#">REGION</a>
+              <Link href="/terms">TERMS</Link>
+              <span style={{ fontWeight: 700, opacity: 0.6 }}>&amp;</span>
+              <Link href="/privacy">PRIVACY</Link>
             </nav>
 
             <div className="footer-copyright">
