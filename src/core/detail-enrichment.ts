@@ -23,6 +23,7 @@ const DATE_KEY_PATTERNS: Record<keyof HackathonDetailDates, RegExp[]> = {
     /application.*(end|close|deadline|until)/i,
     /apply.*(close|end|deadline|until)/i,
     /signup.*(close|end|deadline|until)/i,
+    /^deadline$/i,
     /^registration[_-]?(close|end)(?:at|date|time)?$/i,
   ],
 };

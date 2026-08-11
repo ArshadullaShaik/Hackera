@@ -17,7 +17,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.build.json && node scripts/fix-esm-imports.mjs",
     "dev": "node --loader ts-node/esm src/index.ts",
-    "dev:next": "next dev",
+    "dev:next": "next dev --webpack",
     "build:next": "next build",
     "start": "node dist/src/index.js",
     "api": "node dist/src/api/server.js",

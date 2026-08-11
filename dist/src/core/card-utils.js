@@ -37,6 +37,17 @@ export function formatCardDate(value) {
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString("en-US", cardDateOptions);
 }
+export function resolveEventDateText(item) {
+    const start = formatCardDate(item.startsAt);
+    const end = formatCardDate(item.endsAt);
+    if (start) {
+        if (end && end !== start) {
+            return `${start} - ${end}`;
+        }
+        return start;
+    }
+    return "UPCOMING";
+}
 export function resolvePrizeText(item) {
     const rawDescription = item.description || "";
     const prizePoolMatch = rawDescription.match(/Prize Pool:\s*([^\]|]+)/i);

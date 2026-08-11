@@ -1,8 +1,60 @@
+import { Prisma } from "@prisma/client";
 import { logger } from "../core/logger.js";
 import { recreatePrismaClient } from "./db.js";
+import { extractDetailDates } from "../core/detail-enrichment.js";
 export class HackathonRepository {
     constructor(prisma) {
         this.prisma = prisma;
+    }
+    mapRegistrationDates(row) {
+        const detailDates = extractDetailDates(row.rawSourcePayload || {});
+        return {
+            ...row,
+            registrationStartsAt: detailDates.registrationStartsAt,
+            registrationEndsAt: detailDates.registrationEndsAt,
+        };
+    }
+    getBaseColumnsSql() {
+        return Prisma.sql `
+      id, "sourceId", "sourcePlatform", title, description, "startsAt", "endsAt",
+      "locationType", "locationName", latitude, longitude, "canonicalUrl", "imageUrl",
+      "rawSourcePayload", "createdAt", "updatedAt", "duplicateOfId"
+    `;
+    }
+    buildHackathonWhereSql(filters) {
+        const conditions = [];
+        if (!filters.includeDuplicates) {
+            conditions.push(Prisma.sql `"duplicateOfId" IS NULL`);
+        }
+        if (filters.search) {
+            const search = `%${filters.search}%`;
+            conditions.push(Prisma.sql `(
+        title ILIKE ${search}
+        OR description ILIKE ${search}
+      )`);
+        }
+        if (filters.platform) {
+            conditions.push(Prisma.sql `"sourcePlatform" = ${filters.platform}`);
+        }
+        if (filters.locationType) {
+            conditions.push(Prisma.sql `"locationType" = ${filters.locationType}`);
+        }
+        if (filters.startsAfter) {
+            conditions.push(Prisma.sql `"startsAt" >= ${filters.startsAfter}`);
+        }
+        if (filters.startsBefore) {
+            conditions.push(Prisma.sql `"startsAt" <= ${filters.startsBefore}`);
+        }
+        const now = new Date();
+        const graceDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        conditions.push(Prisma.sql `(
+      "endsAt" >= ${now}
+      OR ("endsAt" IS NULL AND "startsAt" >= ${graceDate})
+    )`);
+        if (conditions.length === 0) {
+            return Prisma.sql ``;
+        }
+        return Prisma.sql `WHERE ${Prisma.join(conditions, " AND ")}`;
     }
     /**
      * Retry an operation once if the connection was dropped.
@@ -50,8 +102,6 @@ export class HackathonRepository {
                     description: hackathon.description,
                     startsAt: new Date(hackathon.startsAt),
                     endsAt: hackathon.endsAt ? new Date(hackathon.endsAt) : null,
-                    registrationStartsAt: hackathon.registrationStartsAt ? new Date(hackathon.registrationStartsAt) : undefined,
-                    registrationEndsAt: hackathon.registrationEndsAt ? new Date(hackathon.registrationEndsAt) : undefined,
                     locationType: hackathon.locationType,
                     locationName: hackathon.locationName,
                     latitude: hackathon.latitude,
@@ -156,51 +206,15 @@ export class HackathonRepository {
      */
     async findFiltered(filters) {
         return this.withRetry(async () => {
-            const conditions = [];
-            if (!filters.includeDuplicates) {
-                conditions.push({ duplicateOfId: null });
-            }
-            if (filters.search) {
-                conditions.push({
-                    OR: [
-                        { title: { contains: filters.search, mode: "insensitive" } },
-                        { description: { contains: filters.search, mode: "insensitive" } },
-                    ],
-                });
-            }
-            if (filters.platform) {
-                conditions.push({ sourcePlatform: filters.platform });
-            }
-            if (filters.locationType) {
-                conditions.push({ locationType: filters.locationType });
-            }
-            if (filters.startsAfter || filters.startsBefore) {
-                const startsAtFilter = {};
-                if (filters.startsAfter) {
-                    startsAtFilter.gte = filters.startsAfter;
-                }
-                if (filters.startsBefore) {
-                    startsAtFilter.lte = filters.startsBefore;
-                }
-                conditions.push({ startsAt: startsAtFilter });
-            }
-            // Automatically exclude ended hackathons (allowing 30-day window if endsAt is null)
-            const now = new Date();
-            const graceDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-            conditions.push({
-                OR: [
-                    { endsAt: { gte: now } },
-                    { endsAt: null, startsAt: { gte: graceDate } },
-                ],
-            });
-            const where = { AND: conditions };
             const offset = (filters.page - 1) * filters.limit;
-            // Sorting by prize is calculated from source metadata, so the current set must
-            // be ordered before pagination is applied.
-            const allData = await this.prisma.hackathon.findMany({
-                where,
-                orderBy: { startsAt: "asc" },
-            });
+            const whereSql = this.buildHackathonWhereSql(filters);
+            const allData = await this.prisma.$queryRaw(Prisma.sql `
+        SELECT ${this.getBaseColumnsSql()}
+        FROM "Hackathon"
+        ${whereSql}
+        ORDER BY "startsAt" ASC
+      `);
+            const now = new Date();
             const prizeValue = (hackathon) => {
                 const raw = hackathon.rawSourcePayload || {};
                 const text = [raw.prize_amount, raw.prize_money, raw.prizes, hackathon.description]
@@ -234,7 +248,7 @@ export class HackathonRepository {
                 return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
             });
             return {
-                data: allData.slice(offset, offset + filters.limit),
+                data: allData.slice(offset, offset + filters.limit).map((row) => this.mapRegistrationDates(row)),
                 total: allData.length,
             };
         });
@@ -283,50 +297,69 @@ export class HackathonRepository {
      * Find a single hackathon by internal UUID.
      */
     async findById(id) {
-        return this.prisma.hackathon.findUnique({
-            where: { id },
+        return this.withRetry(async () => {
+            const rows = await this.prisma.$queryRaw(Prisma.sql `
+        SELECT ${this.getBaseColumnsSql()}
+        FROM "Hackathon"
+        WHERE id = ${id}
+        LIMIT 1
+      `);
+            return rows[0] ? this.mapRegistrationDates(rows[0]) : null;
         });
     }
     /**
      * Get all hackathons from database (paginated, latest first).
      */
     async findAll(limit = 100, offset = 0) {
-        return this.prisma.hackathon.findMany({
-            take: limit,
-            skip: offset,
-            orderBy: { startsAt: "desc" },
+        return this.withRetry(async () => {
+            const rows = await this.prisma.$queryRaw(Prisma.sql `
+        SELECT ${this.getBaseColumnsSql()}
+        FROM "Hackathon"
+        ORDER BY "startsAt" DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `);
+            return rows.map((row) => this.mapRegistrationDates(row));
         });
     }
     /**
      * Get total count of hackathons.
      */
     async count() {
-        return this.prisma.hackathon.count();
+        return this.withRetry(async () => {
+            const rows = await this.prisma.$queryRaw(Prisma.sql `
+        SELECT COUNT(*)::bigint AS count FROM "Hackathon"
+      `);
+            return Number(rows[0]?.count || 0n);
+        });
     }
     /**
      * Get hackathons by platform (latest first).
      */
     async findByPlatform(platform, limit = 100, offset = 0) {
-        return this.prisma.hackathon.findMany({
-            where: { sourcePlatform: platform },
-            take: limit,
-            skip: offset,
-            orderBy: { startsAt: "desc" },
+        return this.withRetry(async () => {
+            const rows = await this.prisma.$queryRaw(Prisma.sql `
+        SELECT ${this.getBaseColumnsSql()}
+        FROM "Hackathon"
+        WHERE "sourcePlatform" = ${platform}
+        ORDER BY "startsAt" DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `);
+            return rows.map((row) => this.mapRegistrationDates(row));
         });
     }
     /**
      * Get hackathons by date range (latest first).
      */
     async findByDateRange(startsAfter, startsBefore, limit = 100) {
-        return this.prisma.hackathon.findMany({
-            where: {
-                startsAt: {
-                    gte: startsAfter,
-                    lte: startsBefore,
-                },
-            },
-            take: limit,
-            orderBy: { startsAt: "desc" },
+        return this.withRetry(async () => {
+            const rows = await this.prisma.$queryRaw(Prisma.sql `
+        SELECT ${this.getBaseColumnsSql()}
+        FROM "Hackathon"
+        WHERE "startsAt" >= ${startsAfter} AND "startsAt" <= ${startsBefore}
+        ORDER BY "startsAt" DESC
+        LIMIT ${limit}
+      `);
+            return rows.map((row) => this.mapRegistrationDates(row));
         });
     }
     /**

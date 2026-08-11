@@ -1,7 +1,8 @@
 export interface CardHackathonItem {
   title: string;
   description?: string;
-  startsAt: string;
+  startsAt?: string;
+  endsAt?: string;
   registrationStartsAt?: string;
   registrationEndsAt?: string;
   rawSourcePayload?: any;
@@ -52,6 +53,19 @@ export function formatCardDate(value?: string): string | null {
 
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString("en-US", cardDateOptions);
+}
+
+export function resolveEventDateText(item: { startsAt?: string; endsAt?: string }): string {
+  const start = formatCardDate(item.startsAt);
+  const end = formatCardDate(item.endsAt);
+
+  if (start) {
+    if (end && end !== start) {
+      return `${start} - ${end}`;
+    }
+    return start;
+  }
+  return "UPCOMING";
 }
 
 export function resolvePrizeText(item: CardHackathonItem): string {

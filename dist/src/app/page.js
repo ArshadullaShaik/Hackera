@@ -1,7 +1,7 @@
 "use client";
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { useState, useEffect, useCallback } from "react";
-import { formatCardDate, resolvePrizeText } from "../core/card-utils.js";
+import { formatCardDate, resolvePrizeText, resolveEventDateText } from "../core/card-utils.js";
 export default function Home() {
     const [hackathons, setHackathons] = useState([]);
     const [page, setPage] = useState(1);
@@ -84,7 +84,7 @@ export default function Home() {
                             locBadgeText = "HYBRID";
                         }
                         const platformName = (item.sourcePlatform || "OTHER").toUpperCase();
-                        const startDateFormatted = formatCardDate(item.startsAt) || "UPCOMING";
+                        const eventDateText = resolveEventDateText(item);
                         const registrationStartsFormatted = formatCardDate(item.registrationStartsAt);
                         const registrationEndsFormatted = formatCardDate(item.registrationEndsAt);
                         const prizeText = resolvePrizeText(item);
@@ -124,7 +124,7 @@ export default function Home() {
                                                 const next = e.target.nextElementSibling;
                                                 if (next)
                                                     next.style.display = "flex";
-                                            } })) : null, _jsx("div", { className: "card-img-placeholder", style: { display: item.imageUrl ? "none" : "flex" }, children: platformName }), _jsx("span", { className: `badge-top-left ${locBadgeClass}`, children: locBadgeText }), _jsxs("span", { className: "badge-top-right", children: ["\u26A1 ", platformName] })] }), _jsxs("div", { className: "card-body", children: [_jsxs("div", { className: "card-tags", children: [_jsx("span", { className: "pill-tag", children: platformName }), _jsxs("span", { className: "pill-tag pill-tag-date", children: ["\uD83D\uDCC5 Event starts: ", startDateFormatted] }), registrationStartsFormatted && (_jsxs("span", { className: "pill-tag pill-tag-date", children: ["\uD83D\uDCDD Registration opens: ", registrationStartsFormatted] })), registrationEndsFormatted && (_jsxs("span", { className: "pill-tag pill-tag-date", children: ["\uD83D\uDD52 Registration closes: ", registrationEndsFormatted] })), trackBadges.map((t) => (_jsxs("span", { className: "pill-tag", style: { background: "#fef08a", color: "#000" }, children: [trackIcons[t] || "🎯", " ", t.toUpperCase()] }, t)))] }), _jsx("h2", { className: "card-title", children: item.title }), _jsx("p", { className: "card-description", children: item.description ||
+                                            } })) : null, _jsx("div", { className: "card-img-placeholder", style: { display: item.imageUrl ? "none" : "flex" }, children: platformName }), _jsx("span", { className: `badge-top-left ${locBadgeClass}`, children: locBadgeText }), _jsxs("span", { className: "badge-top-right", children: ["\u26A1 ", platformName] })] }), _jsxs("div", { className: "card-body", children: [_jsxs("div", { className: "card-tags", children: [_jsx("span", { className: "pill-tag", children: platformName }), _jsxs("span", { className: "pill-tag pill-tag-date", children: ["\uD83D\uDCC5 ", eventDateText] }), registrationStartsFormatted && (_jsxs("span", { className: "pill-tag pill-tag-date", children: ["\uD83D\uDCDD Registration opens: ", registrationStartsFormatted] })), registrationEndsFormatted && (_jsxs("span", { className: "pill-tag pill-tag-date", children: ["\uD83D\uDD52 Registration closes: ", registrationEndsFormatted] })), trackBadges.map((t) => (_jsxs("span", { className: "pill-tag", style: { background: "#fef08a", color: "#000" }, children: [trackIcons[t] || "🎯", " ", t.toUpperCase()] }, t)))] }), _jsx("h2", { className: "card-title", children: item.title }), _jsx("p", { className: "card-description", children: item.description ||
                                                 "Join this exciting hackathon challenge and build innovative solutions." }), _jsxs("div", { className: "card-footer", children: [_jsx("div", { className: "prize-info", children: _jsx("span", { children: prizeText }) }), _jsx("a", { href: item.canonicalUrl, target: "_blank", rel: "noopener noreferrer", className: "btn-arrow-icon", title: "View Hackathon Page", children: "\u2794" })] })] })] }, item.id));
                     })) }) }), page < totalPages && (_jsx("section", { className: "cta-section", children: _jsxs("button", { className: "btn-cta-banner", onClick: handleLoadMore, children: [_jsxs("span", { children: ["LOAD MORE (", hackathons.length, " OF ", total, " SHOWN)"] }), _jsx("span", { className: "arrow", children: "\u2794" })] }) }))] }));
 }

@@ -29,4 +29,14 @@ describe("detail-enrichment", () => {
       startsAt: "2026-08-10T12:00:00.000Z",
     });
   });
+
+  it("treats a bare Deadline label as the registration close date", () => {
+    expect(
+      extractDetailDates({
+        Deadline: "2026-08-18T01:30:00+05:30",
+      })
+    ).toEqual({
+      registrationEndsAt: "2026-08-17T20:00:00.000Z",
+    });
+  });
 });

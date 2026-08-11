@@ -140,7 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Platform Badge Tag
     const platformName = (item.sourcePlatform || "OTHER").toUpperCase();
 
-    const startDateFormatted = formatCardDate(item.startsAt) || "UPCOMING";
+    const eventDateText = shared.resolveEventDateText ? shared.resolveEventDateText(item) : (formatCardDate(item.startsAt) || "UPCOMING");
     const registrationStartsFormatted = formatCardDate(item.registrationStartsAt);
     const registrationEndsFormatted = formatCardDate(item.registrationEndsAt);
     const prizeText = resolvePrizeText(item);
@@ -174,11 +174,11 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="card-body">
         <div class="card-tags">
           <span class="pill-tag">${escapeHtml(platformName)}</span>
-          <span class="pill-tag pill-tag-date">📅 Event starts: ${escapeHtml(startDateFormatted)}</span>
+          <span class="pill-tag pill-tag-date">📅 ${escapeHtml(eventDateText)}</span>
           ${registrationStartsFormatted ? `<span class="pill-tag pill-tag-date">📝 Registration opens: ${escapeHtml(registrationStartsFormatted)}</span>` : ""}
           ${registrationEndsFormatted ? `<span class="pill-tag pill-tag-date">🕒 Registration closes: ${escapeHtml(registrationEndsFormatted)}</span>` : ""}
           ${trackBadges.map((t) => `<span class="pill-tag" style="background: #fef08a; color: #000;">${escapeHtml((trackIcons[t] || "🎯") + " " + t.toUpperCase())}</span>`).join("")}
-        </div>
+        </div>`
 
         <h2 class="card-title">${escapeHtml(item.title)}</h2>
 

@@ -1,8 +1,11 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { NormalizedHackathon } from "../core/schema";
 export declare class HackathonRepository {
     private prisma;
     constructor(prisma: PrismaClient);
+    private mapRegistrationDates;
+    private getBaseColumnsSql;
+    private buildHackathonWhereSql;
     /**
      * Retry an operation once if the connection was dropped.
      * Recreates the Prisma client on the retry attempt.
@@ -58,47 +61,11 @@ export declare class HackathonRepository {
     /**
      * Find a single hackathon by internal UUID.
      */
-    findById(id: string): Promise<{
-        startsAt: Date;
-        endsAt: Date | null;
-        description: string;
-        latitude: number | null;
-        longitude: number | null;
-        title: string;
-        locationType: string;
-        locationName: string | null;
-        sourceId: string;
-        sourcePlatform: string;
-        canonicalUrl: string;
-        imageUrl: string | null;
-        rawSourcePayload: Prisma.JsonValue;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        duplicateOfId: string | null;
-    } | null>;
+    findById(id: string): Promise<any>;
     /**
      * Get all hackathons from database (paginated, latest first).
      */
-    findAll(limit?: number, offset?: number): Promise<{
-        startsAt: Date;
-        endsAt: Date | null;
-        description: string;
-        latitude: number | null;
-        longitude: number | null;
-        title: string;
-        locationType: string;
-        locationName: string | null;
-        sourceId: string;
-        sourcePlatform: string;
-        canonicalUrl: string;
-        imageUrl: string | null;
-        rawSourcePayload: Prisma.JsonValue;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        duplicateOfId: string | null;
-    }[]>;
+    findAll(limit?: number, offset?: number): Promise<any[]>;
     /**
      * Get total count of hackathons.
      */
@@ -106,47 +73,11 @@ export declare class HackathonRepository {
     /**
      * Get hackathons by platform (latest first).
      */
-    findByPlatform(platform: string, limit?: number, offset?: number): Promise<{
-        startsAt: Date;
-        endsAt: Date | null;
-        description: string;
-        latitude: number | null;
-        longitude: number | null;
-        title: string;
-        locationType: string;
-        locationName: string | null;
-        sourceId: string;
-        sourcePlatform: string;
-        canonicalUrl: string;
-        imageUrl: string | null;
-        rawSourcePayload: Prisma.JsonValue;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        duplicateOfId: string | null;
-    }[]>;
+    findByPlatform(platform: string, limit?: number, offset?: number): Promise<any[]>;
     /**
      * Get hackathons by date range (latest first).
      */
-    findByDateRange(startsAfter: Date, startsBefore: Date, limit?: number): Promise<{
-        startsAt: Date;
-        endsAt: Date | null;
-        description: string;
-        latitude: number | null;
-        longitude: number | null;
-        title: string;
-        locationType: string;
-        locationName: string | null;
-        sourceId: string;
-        sourcePlatform: string;
-        canonicalUrl: string;
-        imageUrl: string | null;
-        rawSourcePayload: Prisma.JsonValue;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        duplicateOfId: string | null;
-    }[]>;
+    findByDateRange(startsAfter: Date, startsBefore: Date, limit?: number): Promise<any[]>;
     /**
      * Log a scrape run for job history tracking.
      */

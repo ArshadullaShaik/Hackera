@@ -62,13 +62,13 @@ export async function disconnectPrisma(): Promise<void> {
   if (globalForPrisma.prisma) {
     try {
       await globalForPrisma.prisma.$disconnect();
-    } catch (_) {}
+    } catch (_) { }
     globalForPrisma.prisma = undefined;
   }
   if (globalForPrisma.pool) {
     try {
       await globalForPrisma.pool.end();
-    } catch (_) {}
+    } catch (_) { }
     globalForPrisma.pool = undefined;
   }
   logger.info("Prisma client disconnected and pool drained");

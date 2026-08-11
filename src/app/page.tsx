@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, ChangeEvent } from "react";
-import { formatCardDate, resolvePrizeText, resolveTrackBadges } from "../core/card-utils.js";
+import { formatCardDate, resolvePrizeText, resolveTrackBadges, resolveEventDateText } from "../core/card-utils";
 
 interface HackathonItem {
   id: string;
@@ -391,7 +391,7 @@ export default function Home() {
               }
 
               const platformName = (item.sourcePlatform || "OTHER").toUpperCase();
-              const startDateFormatted = formatCardDate(item.startsAt) || "UPCOMING";
+              const eventDateText = resolveEventDateText(item);
               const registrationStartsFormatted = formatCardDate(item.registrationStartsAt);
               const registrationEndsFormatted = formatCardDate(item.registrationEndsAt);
               const prizeText = resolvePrizeText(item);
@@ -454,7 +454,7 @@ export default function Home() {
                   <div className="card-body">
                     <div className="card-tags">
                       <span className="pill-tag">{platformName}</span>
-                      <span className="pill-tag pill-tag-date">📅 Event starts: {startDateFormatted}</span>
+                      <span className="pill-tag pill-tag-date">📅 {eventDateText}</span>
                       {registrationStartsFormatted && (
                         <span className="pill-tag pill-tag-date">📝 Registration opens: {registrationStartsFormatted}</span>
                       )}

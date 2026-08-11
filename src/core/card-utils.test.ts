@@ -1,9 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { formatCardDate, resolvePrizeText } from "./card-utils.js";
+import { formatCardDate, resolvePrizeText, resolveEventDateText } from "./card-utils.js";
 
 describe("card-utils", () => {
   it("formats UTC calendar dates consistently", () => {
     expect(formatCardDate("2026-08-10T18:30:00.000Z")).toBe("Aug 10");
+  });
+
+  it("resolves event date text correctly for single-day, multi-day, and missing dates", () => {
+    expect(
+      resolveEventDateText({
+        startsAt: "2026-08-10T00:00:00.000Z",
+        endsAt: "2026-08-12T00:00:00.000Z",
+      })
+    ).toBe("Aug 10 - Aug 12");
+
+    expect(
+      resolveEventDateText({
+        startsAt: "2026-08-10T00:00:00.000Z",
+        endsAt: "2026-08-10T20:00:00.000Z",
+      })
+    ).toBe("Aug 10");
+
+    expect(
+      resolveEventDateText({
+        startsAt: "2026-08-10T00:00:00.000Z",
+      })
+    ).toBe("Aug 10");
+
+    expect(resolveEventDateText({})).toBe("UPCOMING");
   });
 
   it("resolves prize text from description metadata first", () => {

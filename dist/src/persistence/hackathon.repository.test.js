@@ -10,6 +10,7 @@ describe("HackathonRepository - Auto Cleanup & Filtering", () => {
                 findMany: vi.fn(),
                 count: vi.fn(),
             },
+            $queryRaw: vi.fn(),
         };
         repository = new HackathonRepository(mockPrisma);
     });
@@ -34,13 +35,11 @@ describe("HackathonRepository - Auto Cleanup & Filtering", () => {
             { id: "2", title: "Future Hack 1", startsAt: new Date("2026-08-01") },
         ];
         mockPrisma.hackathon.findMany.mockResolvedValue(mockData);
+        mockPrisma.$queryRaw.mockResolvedValue(mockData);
         mockPrisma.hackathon.count.mockResolvedValue(2);
         const result = await repository.findFiltered({ page: 1, limit: 10 });
         expect(result.data).toEqual(mockData);
         expect(result.total).toBe(2);
-        expect(mockPrisma.hackathon.findMany).toHaveBeenCalledWith(expect.objectContaining({
-            orderBy: { startsAt: "asc" },
-        }));
     });
     it("orders current hackathons by listed cash prize before upcoming hackathons", async () => {
         const now = Date.now();
@@ -71,6 +70,7 @@ describe("HackathonRepository - Auto Cleanup & Filtering", () => {
             },
         ];
         mockPrisma.hackathon.findMany.mockResolvedValue(mockData);
+        mockPrisma.$queryRaw.mockResolvedValue(mockData);
         const result = await repository.findFiltered({ page: 1, limit: 10 });
         expect(result.data.map((hackathon) => hackathon.id)).toEqual([
             "high-prize",

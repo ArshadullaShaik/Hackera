@@ -70,6 +70,36 @@ describe("LumaScraper", () => {
         expect(events.length).toBe(1);
         expect(events[0].title).toBe("Valid Hackathon");
     });
+    it("keeps the original listing when detail enrichment fails", async () => {
+        const mockApiResponse = {
+            data: {
+                entries: [
+                    {
+                        event: {
+                            api_id: "evt-detail-fail-123",
+                            name: "Detail Fallback Hackathon",
+                            description: "Base listing description",
+                            start_at: "2026-08-10T10:00:00.000Z",
+                            end_at: "2026-08-11T10:00:00.000Z",
+                            url: "detail-fallback-hack",
+                            location_type: "offline",
+                        },
+                    },
+                ],
+                next_cursor: null,
+            },
+        };
+        vi.mocked(axios.get)
+            .mockResolvedValueOnce(mockApiResponse)
+            .mockRejectedValueOnce(new Error("detail fetch failed"));
+        const events = await scraper.scrape();
+        expect(events).toHaveLength(1);
+        expect(events[0]).toMatchObject({
+            title: "Detail Fallback Hackathon",
+            startsAt: "2026-08-10T10:00:00.000Z",
+            endsAt: "2026-08-11T10:00:00.000Z",
+        });
+    });
     it("throws an error when API envelope is invalid (fail-fast)", async () => {
         vi.mocked(axios.get).mockResolvedValueOnce({
             data: { invalid_key: true },

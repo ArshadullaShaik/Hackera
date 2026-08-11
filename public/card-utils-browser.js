@@ -32,6 +32,19 @@ window.HackeraCardUtils = (() => {
     return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString("en-US", cardDateOptions);
   }
 
+  function resolveEventDateText(item) {
+    const start = formatCardDate(item ? item.startsAt : null);
+    const end = formatCardDate(item ? item.endsAt : null);
+
+    if (start) {
+      if (end && end !== start) {
+        return `${start} - ${end}`;
+      }
+      return start;
+    }
+    return "UPCOMING";
+  }
+
   function resolvePrizeText(item) {
     const rawDescription = item.description || "";
     const prizePoolMatch = rawDescription.match(/Prize Pool:\s*([^\]|]+)/i);
@@ -85,5 +98,5 @@ window.HackeraCardUtils = (() => {
     return trackBadges;
   }
 
-  return { formatCardDate, resolvePrizeText, resolveTrackBadges };
+  return { formatCardDate, resolveEventDateText, resolvePrizeText, resolveTrackBadges };
 })();
