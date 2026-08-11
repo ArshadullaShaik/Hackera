@@ -19,6 +19,7 @@ export const HackathonQuerySchema = z.object({
           "unstop",
           "hackerearth",
           "hackclub",
+          "dorahacks",
           "other",
         ])
         .optional()

@@ -7,6 +7,7 @@ import { UnstopScraper } from "./scrapers/unstop/unstop.scraper.js";
 import { DevpostScraper } from "./scrapers/devpost/devpost.scraper.js";
 import { HackerEarthScraper } from "./scrapers/hackerearth/hackerearth.scraper.js";
 import { HackClubScraper } from "./scrapers/hackclub/hackclub.scraper.js";
+import { DoraHacksScraper } from "./scrapers/dorahacks/dorahacks.scraper.js";
 import { HackathonRepository } from "./persistence/hackathon.repository.js";
 import { getPrismaClient, disconnectPrisma } from "./persistence/db.js";
 import { logger } from "./core/logger.js";
@@ -20,6 +21,7 @@ async function main() {
         { name: "Devpost", scraper: new DevpostScraper() },
         { name: "HackerEarth", scraper: new HackerEarthScraper() },
         { name: "HackClub", scraper: new HackClubScraper() },
+        { name: "DoraHacks", scraper: new DoraHacksScraper() },
     ];
     const prisma = getPrismaClient();
     const repository = new HackathonRepository(prisma);

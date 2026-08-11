@@ -13,21 +13,21 @@ export const NormalizedHackathonSchema = z.object({
   endsAt: z.string().datetime({ offset: true }).optional(),
   registrationStartsAt: z.string().datetime({ offset: true }).optional(),
   registrationEndsAt: z.string().datetime({ offset: true }).optional(),
-  
+
   // Location
   locationType: z.enum(["in-person", "online", "hybrid"]),
   locationName: z.string().optional(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
-  
+
   // Source tracking
   sourceId: z.string(), // ID from the source platform
-  sourcePlatform: z.enum(["luma", "devfolio", "devpost", "mlh", "unstop", "hackerearth", "hackclub", "other"]),
+  sourcePlatform: z.enum(["luma", "devfolio", "devpost", "mlh", "unstop", "hackerearth", "hackclub", "dorahacks", "other"]),
   canonicalUrl: z.string().url(),
-  
+
   // Metadata
   imageUrl: z.string().url().optional(),
-  
+
   // Always preserve raw payload for debugging and unmapped fields
   rawSourcePayload: z.record(z.unknown()),
 });

@@ -1,5 +1,4 @@
 {
   "/api/hackathons/route": "app/api/hackathons/route.js",
-  "/page": "app/page.js",
-  "/terms/page": "app/terms/page.js"
+  "/page": "app/page.js"
 }

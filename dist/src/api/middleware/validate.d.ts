@@ -5,7 +5,7 @@ import { z } from "zod";
  */
 export declare const HackathonQuerySchema: z.ZodObject<{
     search: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
-    platform: z.ZodEffects<z.ZodOptional<z.ZodEnum<["luma", "devfolio", "devpost", "mlh", "unstop", "hackerearth", "hackclub", "other"]>>, "luma" | "devfolio" | "devpost" | "mlh" | "unstop" | "hackerearth" | "hackclub" | "other" | undefined, unknown>;
+    platform: z.ZodEffects<z.ZodOptional<z.ZodEnum<["luma", "devfolio", "devpost", "mlh", "unstop", "hackerearth", "hackclub", "dorahacks", "other"]>>, "luma" | "devfolio" | "devpost" | "mlh" | "unstop" | "hackerearth" | "hackclub" | "dorahacks" | "other" | undefined, unknown>;
     locationType: z.ZodEffects<z.ZodOptional<z.ZodEnum<["in-person", "online", "hybrid"]>>, "in-person" | "online" | "hybrid" | undefined, unknown>;
     startsAfter: z.ZodEffects<z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>, string | undefined, unknown>;
     startsBefore: z.ZodEffects<z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>, string | undefined, unknown>;
@@ -15,16 +15,16 @@ export declare const HackathonQuerySchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     page: number;
     limit: number;
-    search?: string | undefined;
-    platform?: "luma" | "devfolio" | "devpost" | "mlh" | "unstop" | "hackerearth" | "hackclub" | "other" | undefined;
     locationType?: "in-person" | "online" | "hybrid" | undefined;
+    search?: string | undefined;
+    platform?: "luma" | "devfolio" | "devpost" | "mlh" | "unstop" | "hackerearth" | "hackclub" | "dorahacks" | "other" | undefined;
     startsAfter?: string | undefined;
     startsBefore?: string | undefined;
     includeDuplicates?: boolean | undefined;
 }, {
+    locationType?: unknown;
     search?: unknown;
     platform?: unknown;
-    locationType?: unknown;
     startsAfter?: unknown;
     startsBefore?: unknown;
     includeDuplicates?: unknown;

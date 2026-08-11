@@ -345,6 +345,7 @@ export default function Home() {
                 <option value="devpost">DEVPOST</option>
                 <option value="hackerearth">HACKEREARTH</option>
                 <option value="hackclub">HACK CLUB</option>
+                <option value="dorahacks">DORAHACKS</option>
               </select>
             </div>
 

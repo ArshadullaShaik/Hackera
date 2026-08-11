@@ -7,6 +7,7 @@ import { UnstopScraper } from "../scrapers/unstop/unstop.scraper.js";
 import { DevpostScraper } from "../scrapers/devpost/devpost.scraper.js";
 import { HackerEarthScraper } from "../scrapers/hackerearth/hackerearth.scraper.js";
 import { HackClubScraper } from "../scrapers/hackclub/hackclub.scraper.js";
+import { DoraHacksScraper } from "../scrapers/dorahacks/dorahacks.scraper.js";
 import { HackathonRepository } from "../persistence/hackathon.repository.js";
 import { getPrismaClient, disconnectPrisma } from "../persistence/db.js";
 import { logger } from "../core/logger.js";
@@ -18,6 +19,7 @@ const SCRAPER_MAP = {
     "scrape:devpost": () => new DevpostScraper(),
     "scrape:hackerearth": () => new HackerEarthScraper(),
     "scrape:hackclub": () => new HackClubScraper(),
+    "scrape:dorahacks": () => new DoraHacksScraper(),
 };
 async function processJob(job) {
     const scraperFactory = SCRAPER_MAP[job.name];

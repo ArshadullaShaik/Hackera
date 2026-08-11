@@ -19,7 +19,7 @@ export const NormalizedHackathonSchema = z.object({
     longitude: z.number().optional(),
     // Source tracking
     sourceId: z.string(), // ID from the source platform
-    sourcePlatform: z.enum(["luma", "devfolio", "devpost", "mlh", "unstop", "hackerearth", "hackclub", "other"]),
+    sourcePlatform: z.enum(["luma", "devfolio", "devpost", "mlh", "unstop", "hackerearth", "hackclub", "dorahacks", "other"]),
     canonicalUrl: z.string().url(),
     // Metadata
     imageUrl: z.string().url().optional(),
