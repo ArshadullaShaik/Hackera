@@ -14,9 +14,14 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "HACKERA // The Hackathon Index",
+  title: "HACKERA | Discover 300+ Global Hackathons in Real-Time",
   description:
     "We scrape the web to find the best hackathons, so you don't have to. Every event, every prize, one dashboard.",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
