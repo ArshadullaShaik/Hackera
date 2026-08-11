@@ -20,6 +20,8 @@ interface HackathonItem {
   rawSourcePayload?: any;
 }
 
+const clientCache = new Map<string, { data: HackathonItem[]; meta: any }>();
+
 export default function Home() {
   const [hackathons, setHackathons] = useState<HackathonItem[]>([]);
   const [page, setPage] = useState(1);
@@ -36,7 +38,21 @@ export default function Home() {
 
   const fetchHackathons = useCallback(
     async (targetPage: number, isAppend: boolean = false) => {
-      setLoading(true);
+      const cacheKey = `${targetPage}_${search.trim()}_${locationType}_${platform}`;
+      const cached = clientCache.get(cacheKey);
+
+      if (cached && !isAppend) {
+        setHackathons(cached.data);
+        setTotal(cached.meta.total);
+        setTotalPages(cached.meta.totalPages);
+        setLoading(false);
+        return;
+      }
+
+      if (!cached) {
+        setLoading(true);
+      }
+
       try {
         const params = new URLSearchParams({
           page: targetPage.toString(),
@@ -56,6 +72,8 @@ export default function Home() {
         const json = await res.json();
         const data: HackathonItem[] = json.data || [];
         const meta = json.meta || { total: 0, totalPages: 1 };
+
+        clientCache.set(cacheKey, { data, meta });
 
         setTotal(meta.total);
         setTotalPages(meta.totalPages);
@@ -432,6 +450,8 @@ export default function Home() {
                         src={item.imageUrl}
                         alt={item.title}
                         className="card-img"
+                        loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = "none";
                           const next = (e.target as HTMLElement).nextElementSibling;

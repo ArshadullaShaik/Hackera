@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getPrismaClient } from "../../../persistence/db.js";
 import { HackathonRepository } from "../../../persistence/hackathon.repository.js";
 import { HackathonQuerySchema } from "../../../api/middleware/validate.js";
+import { apiQueryCache } from "../../../core/cache.js";
 export async function GET(request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -15,6 +16,16 @@ export async function GET(request) {
                 .map((e) => `${e.path.join(".")}: ${e.message}`)
                 .join("; ");
             return NextResponse.json({ error: { message: `Invalid query parameters: ${messages}` } }, { status: 400 });
+        }
+        const cacheKey = JSON.stringify(parseResult.data);
+        const cachedResponse = apiQueryCache.get(cacheKey);
+        if (cachedResponse) {
+            return NextResponse.json(cachedResponse, {
+                headers: {
+                    "X-Cache": "HIT",
+                    "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+                },
+            });
         }
         const { search, platform, locationType, startsAfter, startsBefore, includeDuplicates, page, limit, } = parseResult.data;
         const prisma = getPrismaClient();
@@ -30,13 +41,20 @@ export async function GET(request) {
             limit,
         });
         const totalPages = Math.ceil(total / limit);
-        return NextResponse.json({
+        const payload = {
             data,
             meta: {
                 total,
                 page,
                 limit,
                 totalPages,
+            },
+        };
+        apiQueryCache.set(cacheKey, payload);
+        return NextResponse.json(payload, {
+            headers: {
+                "X-Cache": "MISS",
+                "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
             },
         });
     }

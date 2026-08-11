@@ -2,6 +2,7 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { useState, useEffect, useCallback } from "react";
 import { formatCardDate, resolvePrizeText, resolveEventDateText } from "../core/card-utils.js";
+const clientCache = new Map();
 export default function Home() {
     const [hackathons, setHackathons] = useState([]);
     const [page, setPage] = useState(1);
@@ -14,7 +15,18 @@ export default function Home() {
     const [platform, setPlatform] = useState("");
     const limit = 12;
     const fetchHackathons = useCallback(async (targetPage, isAppend = false) => {
-        setLoading(true);
+        const cacheKey = `${targetPage}_${search.trim()}_${locationType}_${platform}`;
+        const cached = clientCache.get(cacheKey);
+        if (cached && !isAppend) {
+            setHackathons(cached.data);
+            setTotal(cached.meta.total);
+            setTotalPages(cached.meta.totalPages);
+            setLoading(false);
+            return;
+        }
+        if (!cached) {
+            setLoading(true);
+        }
         try {
             const params = new URLSearchParams({
                 page: targetPage.toString(),
@@ -34,6 +46,7 @@ export default function Home() {
             const json = await res.json();
             const data = json.data || [];
             const meta = json.meta || { total: 0, totalPages: 1 };
+            clientCache.set(cacheKey, { data, meta });
             setTotal(meta.total);
             setTotalPages(meta.totalPages);
             if (isAppend) {
@@ -119,7 +132,7 @@ export default function Home() {
                             "Fintech": "💳",
                             "Healthtech": "🩺",
                         };
-                        return (_jsxs("article", { className: "card", children: [_jsxs("div", { className: "card-header", children: [item.imageUrl ? (_jsx("img", { src: item.imageUrl, alt: item.title, className: "card-img", onError: (e) => {
+                        return (_jsxs("article", { className: "card", children: [_jsxs("div", { className: "card-header", children: [item.imageUrl ? (_jsx("img", { src: item.imageUrl, alt: item.title, className: "card-img", loading: "lazy", decoding: "async", onError: (e) => {
                                                 e.target.style.display = "none";
                                                 const next = e.target.nextElementSibling;
                                                 if (next)

@@ -5,11 +5,6 @@ export declare function GET(request: NextRequest): Promise<NextResponse<{
     };
 }> | NextResponse<{
     data: any[];
-    meta: {
-        total: number;
-        page: number;
-        limit: number;
-        totalPages: number;
-    };
+    meta: any;
 }>>;
 //# sourceMappingURL=route.d.ts.map

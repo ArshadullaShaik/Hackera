@@ -1,8 +1,9 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { HackathonRepository } from "../../persistence/hackathon.repository.js";
-import { HackathonQuerySchema, UuidParamSchema } from "../middleware/validate.js";
-import { ApiError } from "../middleware/error-handler.js";
+import { HackathonRepository } from "../../persistence/hackathon.repository";
+import { HackathonQuerySchema, UuidParamSchema } from "../middleware/validate";
+import { ApiError } from "../middleware/error-handler";
 import { ZodError } from "zod";
+import { apiQueryCache } from "../../core/cache";
 
 export function createHackathonRouter(repository: HackathonRepository): Router {
   const router = Router();
@@ -21,6 +22,15 @@ export function createHackathonRouter(repository: HackathonRepository): Router {
         throw new ApiError(400, `Invalid query parameters: ${messages}`);
       }
 
+      const cacheKey = JSON.stringify(parseResult.data);
+      const cachedResponse = apiQueryCache.get(cacheKey);
+      if (cachedResponse) {
+        res.setHeader("X-Cache", "HIT");
+        res.setHeader("Cache-Control", "public, max-age=60");
+        res.json(cachedResponse);
+        return;
+      }
+
       const { search, platform, locationType, startsAfter, startsBefore, includeDuplicates, page, limit } =
         parseResult.data;
 
@@ -37,7 +47,7 @@ export function createHackathonRouter(repository: HackathonRepository): Router {
 
       const totalPages = Math.ceil(total / limit);
 
-      res.json({
+      const payload = {
         data,
         meta: {
           total,
@@ -45,7 +55,12 @@ export function createHackathonRouter(repository: HackathonRepository): Router {
           limit,
           totalPages,
         },
-      });
+      };
+
+      apiQueryCache.set(cacheKey, payload);
+      res.setHeader("X-Cache", "MISS");
+      res.setHeader("Cache-Control", "public, max-age=60");
+      res.json(payload);
     } catch (error) {
       next(error);
     }

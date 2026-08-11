@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPrismaClient } from "../../../persistence/db";
 import { HackathonRepository } from "../../../persistence/hackathon.repository";
 import { HackathonQuerySchema } from "../../../api/middleware/validate";
+import { apiQueryCache } from "../../../core/cache";
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,6 +22,17 @@ export async function GET(request: NextRequest) {
         { error: { message: `Invalid query parameters: ${messages}` } },
         { status: 400 }
       );
+    }
+
+    const cacheKey = JSON.stringify(parseResult.data);
+    const cachedResponse = apiQueryCache.get(cacheKey);
+    if (cachedResponse) {
+      return NextResponse.json(cachedResponse, {
+        headers: {
+          "X-Cache": "HIT",
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+        },
+      });
     }
 
     const {
@@ -49,14 +61,22 @@ export async function GET(request: NextRequest) {
     });
 
     const totalPages = Math.ceil(total / limit);
-
-    return NextResponse.json({
+    const payload = {
       data,
       meta: {
         total,
         page,
         limit,
         totalPages,
+      },
+    };
+
+    apiQueryCache.set(cacheKey, payload);
+
+    return NextResponse.json(payload, {
+      headers: {
+        "X-Cache": "MISS",
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
       },
     });
   } catch (error) {
