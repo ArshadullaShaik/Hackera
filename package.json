@@ -13,6 +13,9 @@
   "license": "ISC",
   "author": "",
   "type": "module",
+  "engines": {
+    "node": "20.x"
+  },
   "main": "dist/src/index.js",
   "scripts": {
     "build": "tsc --project tsconfig.build.json && node scripts/fix-esm-imports.mjs",
