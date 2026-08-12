@@ -1,7 +1,8 @@
 import dotenv from "dotenv";
 dotenv.config();
 import { PrismaClient } from "@prisma/client";
-import { logger } from "../core/logger";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { logger } from "../core/logger.js";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -9,7 +10,10 @@ const globalForPrisma = globalThis as unknown as {
 
 export function getPrismaClient(): PrismaClient {
   if (!globalForPrisma.prisma) {
+    const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+
     globalForPrisma.prisma = new PrismaClient({
+      adapter,
       log: [
         { level: "error", emit: "stdout" },
         { level: "warn", emit: "stdout" },
