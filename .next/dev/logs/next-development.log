@@ -1,5 +1,0 @@
-{"timestamp":"00:00:01.410","source":"Server","level":"LOG","message":""}
-{"timestamp":"00:00:02.301","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
-{"timestamp":"00:00:02.673","source":"Server","level":"LOG","message":"◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]"}
-{"timestamp":"00:08:09.482","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
-{"timestamp":"00:08:32.119","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}

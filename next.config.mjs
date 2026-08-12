@@ -13,18 +13,6 @@ const nextConfig = {
       },
     ],
   },
-  async rewrites() {
-    return [
-      {
-        source: '/hackathons',
-        destination: 'http://localhost:3000/hackathons',
-      },
-      {
-        source: '/api/hackathons',
-        destination: 'http://localhost:3000/hackathons',
-      },
-    ];
-  },
 };
 
 export default nextConfig;
