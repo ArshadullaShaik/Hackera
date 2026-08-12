@@ -2,15 +2,34 @@ import dotenv from "dotenv";
 dotenv.config();
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 import { logger } from "../core/logger.js";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
+  pool: pg.Pool | undefined;
 };
+
+function createPool(): pg.Pool {
+  const p = new pg.Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+    max: 5,
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 10_000,
+  });
+
+  p.on("error", (err) => {
+    logger.warn({ error: err.message }, "Supabase pool background connection error");
+  });
+
+  return p;
+}
 
 export function getPrismaClient(): PrismaClient {
   if (!globalForPrisma.prisma) {
-    const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+    globalForPrisma.pool = createPool();
+    const adapter = new PrismaPg(globalForPrisma.pool);
 
     globalForPrisma.prisma = new PrismaClient({
       adapter,
