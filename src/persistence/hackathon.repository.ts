@@ -289,7 +289,7 @@ export class HackathonRepository {
       };
       const isCurrent = (hackathon: any) => new Date(hackathon.startsAt) <= now;
 
-      allData.sort((a, b) => {
+      allData.sort((a: any, b: any) => {
         const currentOrder = Number(isCurrent(b)) - Number(isCurrent(a));
         if (currentOrder) return currentOrder;
         if (isCurrent(a)) {
@@ -300,7 +300,7 @@ export class HackathonRepository {
       });
 
       return {
-        data: allData.slice(offset, offset + filters.limit).map((row) => this.mapRegistrationDates(row)),
+        data: allData.slice(offset, offset + filters.limit).map((row: any) => this.mapRegistrationDates(row)),
         total: allData.length,
       };
     });
@@ -334,7 +334,7 @@ export class HackathonRepository {
       const current = allHackathons[i];
       if (current.duplicateOfId) continue; // Already marked as duplicate
 
-      const existingBefore = allHackathons.slice(0, i).filter((h) => !h.duplicateOfId);
+      const existingBefore = allHackathons.slice(0, i).filter((h: any) => !h.duplicateOfId);
       const match = dedupService.findDuplicate(current, existingBefore);
 
       if (match) {
@@ -380,7 +380,7 @@ export class HackathonRepository {
         LIMIT ${limit} OFFSET ${offset}
       `);
 
-      return rows.map((row) => this.mapRegistrationDates(row));
+      return rows.map((row: any) => this.mapRegistrationDates(row));
     });
   }
 
@@ -410,7 +410,7 @@ export class HackathonRepository {
         LIMIT ${limit} OFFSET ${offset}
       `);
 
-      return rows.map((row) => this.mapRegistrationDates(row));
+      return rows.map((row: any) => this.mapRegistrationDates(row));
     });
   }
 
@@ -427,7 +427,7 @@ export class HackathonRepository {
         LIMIT ${limit}
       `);
 
-      return rows.map((row) => this.mapRegistrationDates(row));
+      return rows.map((row: any) => this.mapRegistrationDates(row));
     });
   }
 
