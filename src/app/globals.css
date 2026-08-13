@@ -50,6 +50,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 a {
@@ -60,6 +61,10 @@ a {
 button, input, select {
   font-family: inherit;
   font-size: inherit;
+}
+
+img, svg {
+  max-width: 100%;
 }
 
 /* Navbar */
@@ -281,6 +286,7 @@ button, input, select {
 .input-group {
   position: relative;
   flex: 2;
+  min-width: 0;
   display: flex;
   align-items: center;
 }
@@ -311,6 +317,7 @@ button, input, select {
 
 .select-group {
   flex: 1;
+  min-width: 0;
 }
 
 .select-group select {
@@ -689,8 +696,13 @@ button, input, select {
 
 /* Responsive */
 @media (max-width: 1024px) {
+  .main-content {
+    padding: 32px 20px;
+  }
+
   .hero-section {
     grid-template-columns: 1fr;
+    gap: 28px;
   }
   .hackathons-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -701,21 +713,192 @@ button, input, select {
 }
 
 @media (max-width: 768px) {
+  .nav-container {
+    padding: 16px;
+    flex-wrap: wrap;
+  }
+
   .nav-links {
-    display: none;
+    width: 100%;
+    order: 2;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 4px;
   }
+
+  .nav-item {
+    flex: 1;
+    padding: 8px 4px;
+    text-align: center;
+  }
+
+  .main-content {
+    padding: 36px 16px;
+  }
+
+  .hero-section {
+    gap: 32px;
+    margin-bottom: 44px;
+  }
+
+  .hero-title {
+    font-size: clamp(36px, 10vw, 42px);
+    margin-bottom: 16px;
+  }
+
+  .hero-badge-lime {
+    max-width: none;
+    padding: 16px;
+    font-size: 16px;
+  }
+
+  .filter-section {
+    margin-bottom: 32px;
+  }
+
+  .status-bar-wrapper {
+    justify-content: stretch;
+  }
+
+  .status-badge {
+    width: 100%;
+    padding: 6px 10px;
+    text-align: center;
+  }
+
+  .filter-card {
+    padding: 16px;
+  }
+
   .filter-form {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
   }
+
+  .search-input-group,
+  .filter-form .btn {
+    grid-column: 1 / -1;
+  }
+
+  .input-group input,
+  .select-group select {
+    min-height: 48px;
+  }
+
   .hackathons-grid {
     grid-template-columns: 1fr;
+    gap: 28px;
   }
+
+  .card-header {
+    height: 170px;
+  }
+
+  .card-body {
+    padding: 20px;
+  }
+
+  .active-tags-bar {
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+
+  .empty-state {
+    padding: 32px 20px;
+  }
+
   .btn-cta-banner {
     font-size: 18px;
     padding: 18px 20px;
+    gap: 10px;
   }
+
+  .btn-cta-banner .arrow {
+    font-size: 24px;
+  }
+
+  .footer {
+    padding: 32px 16px;
+  }
+
   .footer-container {
     flex-direction: column;
     align-items: flex-start;
+    gap: 20px;
+  }
+
+  .footer-copyright {
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-logo {
+    padding: 3px 9px;
+    font-size: 20px;
+  }
+
+  .nav-item {
+    font-size: 13px;
+  }
+
+  .nav-links {
+    gap: 4px;
+  }
+
+  .hero-title {
+    font-size: 36px;
+  }
+
+  .doodle-frame {
+    filter: drop-shadow(4px 4px 0px var(--ink));
+  }
+
+  .filter-form {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .select-group,
+  .search-input-group,
+  .filter-form .btn {
+    grid-column: auto;
+  }
+
+  .filter-form .btn {
+    width: 100%;
+  }
+
+  .card-tags {
+    gap: 10px;
+  }
+
+  .pill-tag {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .card-footer {
+    gap: 12px;
+  }
+
+  .prize-info {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .btn-cta-banner {
+    padding: 16px;
+    font-size: 16px;
+  }
+
+  .cta-section {
+    margin-bottom: 48px;
+  }
+
+  .footer-nav {
+    gap: 16px;
   }
 }
