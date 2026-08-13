@@ -18,7 +18,7 @@
   },
   "main": "dist/src/index.js",
   "scripts": {
-    "build": "tsc --project tsconfig.build.json && node scripts/fix-esm-imports.mjs",
+    "build": "prisma generate && tsc --project tsconfig.build.json && node scripts/fix-esm-imports.mjs",
     "dev": "node --loader ts-node/esm src/index.ts",
     "dev:next": "next dev --webpack",
     "build:next": "prisma generate && next build",
