@@ -714,22 +714,23 @@ img, svg {
 
 @media (max-width: 768px) {
   .nav-container {
-    padding: 16px;
-    flex-wrap: wrap;
+    padding: 10px 16px;
+    flex-wrap: nowrap;
+    gap: 8px;
   }
 
   .nav-links {
-    width: 100%;
-    order: 2;
-    justify-content: space-between;
-    gap: 8px;
-    padding-top: 4px;
+    width: auto;
+    margin-left: auto;
+    gap: 0;
+    white-space: nowrap;
   }
 
   .nav-item {
-    flex: 1;
-    padding: 8px 4px;
+    flex: none;
+    padding: 5px 6px;
     text-align: center;
+    font-size: 13px;
   }
 
   .main-content {
@@ -792,11 +793,11 @@ img, svg {
   }
 
   .card-header {
-    height: 170px;
+    height: 140px;
   }
 
   .card-body {
-    padding: 20px;
+    padding: 16px;
   }
 
   .active-tags-bar {
@@ -836,16 +837,13 @@ img, svg {
 
 @media (max-width: 480px) {
   .brand-logo {
-    padding: 3px 9px;
-    font-size: 20px;
+    padding: 3px 7px;
+    font-size: 18px;
   }
 
   .nav-item {
-    font-size: 13px;
-  }
-
-  .nav-links {
-    gap: 4px;
+    padding: 5px 4px;
+    font-size: 12px;
   }
 
   .hero-title {
@@ -873,6 +871,18 @@ img, svg {
 
   .card-tags {
     gap: 10px;
+  }
+
+  .card-header {
+    height: 128px;
+  }
+
+  .card-body {
+    padding: 14px;
+  }
+
+  .card-description {
+    margin-bottom: 16px;
   }
 
   .pill-tag {
