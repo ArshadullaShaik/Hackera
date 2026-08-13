@@ -10,25 +10,30 @@ const globalForPrisma = globalThis as unknown as {
   pool: pg.Pool | undefined;
 };
 
-function createPool(): pg.Pool {
-  const p = new pg.Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-    max: 5,
-    idleTimeoutMillis: 10_000,
-    connectionTimeoutMillis: 10_000,
-  });
+function getOrCreatePool(): pg.Pool {
+  if (!globalForPrisma.pool) {
+    const connectionString =
+      process.env.DATABASE_URL ||
+      "postgresql://postgres:postgres@localhost:5432/postgres";
 
-  p.on("error", (err) => {
-    logger.warn({ error: err.message }, "Supabase pool background connection error");
-  });
+    globalForPrisma.pool = new pg.Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false },
+      max: 3,
+      idleTimeoutMillis: 5_000,
+      connectionTimeoutMillis: 5_000,
+    });
 
-  return p;
+    globalForPrisma.pool.on("error", (err) => {
+      logger.warn({ error: err.message }, "Postgres pool connection error");
+    });
+  }
+  return globalForPrisma.pool;
 }
 
 export function getPrismaClient(): PrismaClient {
   if (!globalForPrisma.prisma) {
-    globalForPrisma.pool = createPool();
+    globalForPrisma.pool = getOrCreatePool();
     const adapter = new PrismaPg(globalForPrisma.pool);
 
     globalForPrisma.prisma = new PrismaClient({
