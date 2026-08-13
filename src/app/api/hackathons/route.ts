@@ -80,11 +80,13 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : String(error);
     return NextResponse.json(
       {
         error: {
-          message:
-            error instanceof Error ? error.message : "Internal Server Error",
+          message,
+          stack,
         },
       },
       { status: 500 }
