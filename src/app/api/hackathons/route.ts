@@ -4,6 +4,8 @@ import { HackathonRepository } from "../../../persistence/hackathon.repository";
 import { HackathonQuerySchema } from "../../../api/middleware/validate";
 import { apiQueryCache } from "../../../core/cache";
 
+export const runtime = "nodejs";
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -81,12 +83,11 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const stack = error instanceof Error ? error.stack : String(error);
+    console.error("GET /api/hackathons failed", error);
     return NextResponse.json(
       {
         error: {
           message,
-          stack,
         },
       },
       { status: 500 }

@@ -53,6 +53,8 @@ model Hackathon {
   @@index([startsAt])
   @@index([createdAt])
   @@index([duplicateOfId])
+  @@index([locationType, sourcePlatform, startsAt])
+  @@index([duplicateOfId, startsAt])
 }
 
 model ScrapeRun {

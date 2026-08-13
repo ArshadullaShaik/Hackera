@@ -1,5 +1,3 @@
-import dotenv from "dotenv";
-dotenv.config();
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
@@ -12,9 +10,17 @@ const globalForPrisma = globalThis as unknown as {
 
 function getOrCreatePool(): pg.Pool {
   if (!globalForPrisma.pool) {
-    const connectionString =
-      process.env.DATABASE_URL ||
-      "postgresql://postgres:postgres@localhost:5432/postgres";
+    let connectionString = process.env.DATABASE_URL?.trim();
+    if (
+      connectionString &&
+      ((connectionString.startsWith('"') && connectionString.endsWith('"')) ||
+        (connectionString.startsWith("'") && connectionString.endsWith("'")))
+    ) {
+      connectionString = connectionString.slice(1, -1).trim();
+    }
+    if (!connectionString) {
+      throw new Error("DATABASE_URL is required to initialize Prisma");
+    }
 
     globalForPrisma.pool = new pg.Pool({
       connectionString,
@@ -66,6 +72,10 @@ export async function disconnectPrisma(): Promise<void> {
       await globalForPrisma.prisma.$disconnect();
     } catch (_) { }
     globalForPrisma.prisma = undefined;
+  }
+  if (globalForPrisma.pool) {
+    await globalForPrisma.pool.end();
+    globalForPrisma.pool = undefined;
   }
   logger.info("Prisma client disconnected");
 }
