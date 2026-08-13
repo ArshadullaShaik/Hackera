@@ -109,17 +109,6 @@ export class HackathonRepository {
   async upsert(hackathon: NormalizedHackathon): Promise<{ id: string; created: boolean }> {
     return this.withRetry(async () => {
       try {
-        // Check if record exists to determine created vs updated
-        const existing = await this.prisma.hackathon.findUnique({
-          where: {
-            sourceId_sourcePlatform: {
-              sourceId: hackathon.sourceId,
-              sourcePlatform: hackathon.sourcePlatform,
-            },
-          },
-          select: { id: true },
-        });
-
         const data = {
           title: hackathon.title,
           description: hackathon.description,
@@ -147,9 +136,14 @@ export class HackathonRepository {
             sourcePlatform: hackathon.sourcePlatform,
             ...data,
           },
+          select: {
+            id: true,
+            createdAt: true,
+            updatedAt: true,
+          },
         });
 
-        const created = !existing;
+        const created = Math.abs(result.createdAt.getTime() - result.updatedAt.getTime()) < 1000;
         logger.debug(
           { id: result.id, platform: hackathon.sourcePlatform, sourceId: hackathon.sourceId, created },
           created ? "Hackathon record created" : "Hackathon record updated"
