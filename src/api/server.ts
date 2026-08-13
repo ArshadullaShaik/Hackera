@@ -59,7 +59,7 @@ async function main() {
   const repository = new HackathonRepository(prisma);
   const app = createApp(repository);
 
-  const server = app.listen(port, () => {
+  const server = app.listen(port, "0.0.0.0", () => {
     logger.info({ port }, "Hackera API server started");
   });
 
