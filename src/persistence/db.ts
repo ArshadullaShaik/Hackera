@@ -3,7 +3,7 @@ dotenv.config();
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
-import { logger } from "../core/logger.js";
+import { logger } from "../core/logger";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
