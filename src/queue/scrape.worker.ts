@@ -1,4 +1,5 @@
 import { Worker, Job } from "bullmq";
+import type IORedis from "ioredis";
 import { createRedisConnection } from "./connection.js";
 import { LumaScraper } from "../scrapers/luma/luma.scraper.js";
 import { DevfolioScraper } from "../scrapers/devfolio/devfolio.scraper.js";
@@ -12,8 +13,9 @@ import { HackathonRepository } from "../persistence/hackathon.repository.js";
 import { getPrismaClient, disconnectPrisma } from "../persistence/db.js";
 import { Scraper } from "../core/scraper.interface.js";
 import { logger } from "../core/logger.js";
+import { isMainModule } from "../core/is-main.js";
 
-const SCRAPER_MAP: Record<string, () => Scraper> = {
+export const SCRAPER_MAP: Record<string, () => Scraper> = {
   "scrape:luma": () => new LumaScraper(),
   "scrape:devfolio": () => new DevfolioScraper(),
   "scrape:mlh": () => new MLHScraper(),
@@ -24,7 +26,7 @@ const SCRAPER_MAP: Record<string, () => Scraper> = {
   "scrape:dorahacks": () => new DoraHacksScraper(),
 };
 
-async function processJob(job: Job): Promise<{ created: number; updated: number }> {
+export async function processJob(job: Job): Promise<{ created: number; updated: number }> {
   const scraperFactory = SCRAPER_MAP[job.name];
   if (!scraperFactory) {
     throw new Error(`Unknown scraper job: ${job.name}`);
@@ -102,11 +104,11 @@ async function processJob(job: Job): Promise<{ created: number; updated: number 
 /**
  * Start the BullMQ worker.
  */
-async function main() {
-  const connection = createRedisConnection();
+export function startWorker(connection?: IORedis): Worker {
+  const conn = connection ?? createRedisConnection();
 
   const worker = new Worker("scrape", processJob, {
-    connection,
+    connection: conn,
     concurrency: 1, // One scraper at a time to be polite to source APIs
     removeOnComplete: { count: 50 },
     removeOnFail: { count: 50 },
@@ -130,6 +132,13 @@ async function main() {
     );
   });
 
+  return worker;
+}
+
+async function main() {
+  const connection = createRedisConnection();
+  const worker = startWorker(connection);
+
   // Graceful shutdown
   const shutdown = async () => {
     logger.info("Shutting down worker...");
@@ -143,7 +152,10 @@ async function main() {
   process.on("SIGTERM", shutdown);
 }
 
-main().catch((error) => {
-  logger.error({ error: error instanceof Error ? error.message : String(error) }, "Worker failed to start");
-  process.exit(1);
-});
+if (isMainModule(import.meta.url)) {
+  main().catch((error) => {
+    logger.error({ error: error instanceof Error ? error.message : String(error) }, "Worker failed to start");
+    process.exit(1);
+  });
+}
+

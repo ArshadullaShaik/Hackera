@@ -7,6 +7,7 @@ import { errorHandler } from "./middleware/error-handler.js";
 import { HackathonRepository } from "../persistence/hackathon.repository.js";
 import { getPrismaClient, disconnectPrisma } from "../persistence/db.js";
 import { logger } from "../core/logger.js";
+import { isMainModule } from "../core/is-main.js";
 
 /**
  * Create and configure the Express app.
@@ -17,6 +18,11 @@ export function createApp(repository: HackathonRepository) {
 
   // JSON body parsing
   app.use(express.json());
+
+  // Health check (before rate limiter and DB/Redis so pings stay cheap)
+  app.get("/health", (_req, res) => {
+    res.json({ status: "ok" });
+  });
 
   // Rate limiting — 100 requests per 15 minutes per IP
   const limiter = rateLimit({
@@ -39,11 +45,6 @@ export function createApp(repository: HackathonRepository) {
   // Routes
   app.use("/hackathons", createHackathonRouter(repository));
 
-  // Health check
-  app.get("/health", (_req, res) => {
-    res.json({ status: "ok" });
-  });
-
   // Error handling (must be last)
   app.use(errorHandler);
 
@@ -53,8 +54,7 @@ export function createApp(repository: HackathonRepository) {
 /**
  * Start the API server.
  */
-async function main() {
-  const port = parseInt(process.env.PORT || "3000", 10);
+export function startServer(port: number = parseInt(process.env.PORT || "3000", 10)) {
   const prisma = getPrismaClient();
   const repository = new HackathonRepository(prisma);
   const app = createApp(repository);
@@ -62,6 +62,12 @@ async function main() {
   const server = app.listen(port, "0.0.0.0", () => {
     logger.info({ port }, "Hackera API server started");
   });
+
+  return server;
+}
+
+async function main() {
+  const server = startServer();
 
   // Graceful shutdown
   const shutdown = async () => {
@@ -75,10 +81,13 @@ async function main() {
   process.on("SIGTERM", shutdown);
 }
 
-main().catch((error) => {
-  logger.error(
-    { error: error instanceof Error ? error.message : String(error) },
-    "Failed to start API server"
-  );
-  process.exit(1);
-});
+if (isMainModule(import.meta.url)) {
+  main().catch((error) => {
+    logger.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      "Failed to start API server"
+    );
+    process.exit(1);
+  });
+}
+

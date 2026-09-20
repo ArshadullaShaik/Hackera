@@ -1,8 +1,9 @@
 import { Queue } from "bullmq";
 import { createRedisConnection } from "./connection.js";
 import { logger } from "../core/logger.js";
+import { isMainModule } from "../core/is-main.js";
 
-const SCRAPER_JOBS = [
+export const SCRAPER_JOBS = [
   "scrape:luma",
   "scrape:devfolio",
   "scrape:mlh",
@@ -13,7 +14,7 @@ const SCRAPER_JOBS = [
 ];
 
 // Retry config: exponential backoff — 30s, 60s, 120s
-const JOB_OPTIONS = {
+export const JOB_OPTIONS = {
   attempts: 3,
   backoff: {
     type: "exponential" as const,
@@ -24,10 +25,27 @@ const JOB_OPTIONS = {
 /**
  * Enqueue all scraper jobs once.
  */
-async function enqueueAll(queue: Queue) {
+export async function enqueueAll(queue: Queue) {
   for (const jobName of SCRAPER_JOBS) {
     await queue.add(jobName, {}, { ...JOB_OPTIONS });
     logger.info({ jobName }, "Enqueued scrape job");
+  }
+}
+
+/**
+ * Register repeatable scrape jobs (every 6 hours).
+ */
+export async function registerRepeatableJobs(queue: Queue) {
+  logger.info("Setting up repeatable scrape jobs (every 6 hours)");
+
+  for (const jobName of SCRAPER_JOBS) {
+    await queue.add(jobName, {}, {
+      ...JOB_OPTIONS,
+      repeat: {
+        every: 6 * 60 * 60 * 1000, // 6 hours in ms
+      },
+    });
+    logger.info({ jobName, interval: "6h" }, "Repeatable job registered");
   }
 }
 
@@ -52,17 +70,7 @@ async function main() {
   }
 
   // Set up repeatable jobs — every 6 hours
-  logger.info("Setting up repeatable scrape jobs (every 6 hours)");
-
-  for (const jobName of SCRAPER_JOBS) {
-    await queue.add(jobName, {}, {
-      ...JOB_OPTIONS,
-      repeat: {
-        every: 6 * 60 * 60 * 1000, // 6 hours in ms
-      },
-    });
-    logger.info({ jobName, interval: "6h" }, "Repeatable job registered");
-  }
+  await registerRepeatableJobs(queue);
 
   logger.info("Scheduler running. Press Ctrl+C to stop.");
 
@@ -78,7 +86,10 @@ async function main() {
   process.on("SIGTERM", shutdown);
 }
 
-main().catch((error) => {
-  logger.error({ error: error instanceof Error ? error.message : String(error) }, "Scheduler failed");
-  process.exit(1);
-});
+if (isMainModule(import.meta.url)) {
+  main().catch((error) => {
+    logger.error({ error: error instanceof Error ? error.message : String(error) }, "Scheduler failed");
+    process.exit(1);
+  });
+}
+

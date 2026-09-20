@@ -23,6 +23,7 @@
     "dev:next": "next dev --webpack",
     "build:next": "prisma generate && next build",
     "start": "node dist/src/index.js",
+    "render": "node dist/src/render.js",
     "api": "node dist/src/api/server.js",
     "worker": "node dist/src/queue/scrape.worker.js",
     "scheduler": "node dist/src/queue/scrape.scheduler.js",

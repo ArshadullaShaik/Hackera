@@ -34,7 +34,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: hackera-api
-    command: ["node", "dist/api/server.js"]
+    command: ["node", "dist/src/api/server.js"]
     environment:
       DATABASE_URL: "postgresql://hackera_user:hackera_password@postgres:5432/hackera_db?schema=public"
       REDIS_HOST: "redis"
@@ -54,7 +54,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: hackera-worker
-    command: ["node", "dist/queue/scrape.worker.js"]
+    command: ["node", "dist/src/queue/scrape.worker.js"]
     environment:
       DATABASE_URL: "postgresql://hackera_user:hackera_password@postgres:5432/hackera_db?schema=public"
       REDIS_HOST: "redis"
