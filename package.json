@@ -14,7 +14,7 @@
   "author": "",
   "type": "module",
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   },
   "main": "dist/src/index.js",
   "scripts": {
