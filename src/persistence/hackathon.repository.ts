@@ -236,8 +236,9 @@ export class HackathonRepository {
 
   /**
    * Query hackathons with combined optional filters + pagination.
-   * Excludes ended hackathons and orders soonest first (startsAt asc).
-   * Returns both data and total count for pagination metadata.
+   * Excludes ended hackathons. Ongoing events appear first, grouped by
+   * urgency (ending within 3d → 7d → later) and shuffled daily within
+   * each tier. Upcoming events follow, ordered by soonest start date.
    */
   async findFiltered(filters: {
     search?: string;
@@ -261,35 +262,43 @@ export class HackathonRepository {
       `);
 
       const now = new Date();
-      const prizeValue = (hackathon: any) => {
-        const raw = hackathon.rawSourcePayload || {};
-        const text = [raw.prize_amount, raw.prize_money, raw.prizes, hackathon.description]
-          .filter(Boolean)
-          .join(" ")
-          .replace(/<[^>]*>/g, " ");
-        const match = text.match(/(?:\$|₹|€|£|USD|INR|Rs\.?)[\s]*([\d,.]+)\s*(k|m|million|thousand|lakh|crore)?/i);
-        if (!match) return 0;
-
-        const amount = Number(match[1].replace(/,/g, ""));
-        const multiplier = {
-          k: 1_000,
-          thousand: 1_000,
-          m: 1_000_000,
-          million: 1_000_000,
-          lakh: 100_000,
-          crore: 10_000_000,
-        }[match[2]?.toLowerCase() || ""] || 1;
-        return Number.isFinite(amount) ? amount * multiplier : 0;
-      };
       const isCurrent = (hackathon: any) => new Date(hackathon.startsAt) <= now;
 
+      // Urgency bucket: 0 = ends within 3 days, 1 = within 7 days, 2 = later/unknown
+      const urgencyBucket = (h: any) => {
+        if (!h.endsAt) return 2;
+        const daysLeft = (new Date(h.endsAt).getTime() - now.getTime()) / (24 * 60 * 60 * 1000);
+        if (daysLeft <= 3) return 0;
+        if (daysLeft <= 7) return 1;
+        return 2;
+      };
+
+      // Daily-seeded hash: stable within a day, shuffles the next day
+      const daySeed = Math.floor(now.getTime() / (24 * 60 * 60 * 1000));
+      const seededHash = (id: string) => {
+        let hash = 0;
+        const str = `${id}-${daySeed}`;
+        for (let i = 0; i < str.length; i++) {
+          hash = ((hash << 5) - hash) + str.charCodeAt(i);
+          hash |= 0;
+        }
+        return hash;
+      };
+
       allData.sort((a: any, b: any) => {
+        // 1. Ongoing events always above upcoming
         const currentOrder = Number(isCurrent(b)) - Number(isCurrent(a));
         if (currentOrder) return currentOrder;
+
         if (isCurrent(a)) {
-          const prizeOrder = prizeValue(b) - prizeValue(a);
-          if (prizeOrder) return prizeOrder;
+          // 2. Within ongoing: most urgent bucket first
+          const bucketOrder = urgencyBucket(a) - urgencyBucket(b);
+          if (bucketOrder) return bucketOrder;
+          // 3. Within same urgency bucket: daily shuffle
+          return seededHash(a.id) - seededHash(b.id);
         }
+
+        // 4. Upcoming: soonest start date first
         return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
       });
 
